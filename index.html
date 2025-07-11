@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Museum Heist: The Midnight Hour</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 1200px;
+            max-height: 800px;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
+            border: 2px solid #555;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a1a;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-shadow: 0 0 10px #ff0000;
+            width: 100%;
+        }
+        .hud-left, .hud-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        #score, #level, #timer {
+            font-size: clamp(16px, 3vw, 24px);
+            font-weight: bold;
+        }
+        .icon-button {
+            background: none;
+            border: none;
+            font-size: clamp(20px, 3vw, 28px);
+            cursor: pointer;
+            color: white;
+            text-shadow: 0 0 5px #fff;
+            pointer-events: all;
+            padding: 0;
+            margin: 0;
+            line-height: 1;
+        }
+        #flashlight-bar-container {
+            width: 200px;
+            height: 20px;
+            background-color: rgba(0,0,0,0.5);
+            border: 2px solid #888;
+            border-radius: 10px;
+            padding: 2px;
+        }
+        #flashlight-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ffff88, #ffd700);
+            border-radius: 8px;
+            transition: width 0.2s ease-out;
+        }
+        #game-over-screen, #start-screen, #level-complete-screen, #upgrade-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: clamp(32px, 8vw, 64px);
+            text-shadow: 0 0 20px #ff4500;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: clamp(16px, 3vw, 22px);
+            max-width: 600px;
+            line-height: 1.6;
+        }
+        .button {
+            padding: 15px 30px;
+            font-size: clamp(18px, 4vw, 24px);
+            color: white;
+            background: #ff4500;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 30px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 2px;
+            box-shadow: 0 0 20px #ff4500, inset 0 0 10px rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+            pointer-events: all;
+        }
+        .button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px #ff8c00, inset 0 0 15px rgba(255,255,255,0.5);
+        }
+        #leaderboard {
+            margin-top: 20px;
+            font-size: clamp(14px, 2.5vw, 18px);
+        }
+        #leaderboard ol {
+            list-style-type: decimal;
+            padding-left: 40px;
+        }
+        .upgrade-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+            margin-top: 30px;
+        }
+        .upgrade-card {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid #ff4500;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            pointer-events: all;
+        }
+        .upgrade-card:hover {
+            background: rgba(255, 69, 0, 0.3);
+            transform: translateY(-5px);
+        }
+        .upgrade-card h3 {
+            margin-top: 0;
+        }
+        .upgrade-card p {
+            font-size: 14px;
+        }
+        .upgrade-card .cost {
+            font-weight: bold;
+            color: #ffd700;
+        }
+        #alarm-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,0,0,0.6) 0%, rgba(255,0,0,0) 70%);
+            z-index: 5;
+            animation: alarm-pulse 1s infinite;
+            display: none;
+        }
+        @keyframes alarm-pulse {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+        #touch-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 150px;
+            height: 150px;
+            z-index: 20;
+            display: none; /* Hidden by default, shown on touch devices */
+        }
+        #joystick {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+        }
+        #joystick-thumb {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            top: 45px;
+            left: 45px;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="alarm-flash"></div>
+        <div id="ui-layer">
+            <div class="hud">
+                <div class="hud-left">
+                    <span>Score: <span id="score">0</span></span>
+                    <button id="mute-button" class="icon-button">🔊</button>
+                </div>
+                <div class="hud-right">
+                    <span>Level: <span id="level">1</span></span>
+                    <span>Time: <span id="timer">60</span>s</span>
+                </div>
+            </div>
+            <div class="hud">
+                <div>Flashlight</div>
+                <div id="flashlight-bar-container">
+                    <div id="flashlight-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="start-screen">
+            <h1>Museum Heist</h1>
+            <h2>The Midnight Hour</h2>
+            <p>You are the last line of defense. A legendary syndicate of art thieves has targeted the museum tonight. They are swift, cunning, and will stop at nothing. Use your flashlight to stun and apprehend them before they reach the vault. But beware... the darkness holds more than just thieves. Don't get distracted.</p>
+            <button class="button" id="start-button">Begin Watch</button>
+            <div id="leaderboard">
+                <h3>High Scores</h3>
+                <ol id="high-scores-list"></ol>
+            </div>
+        </div>
+
+        <div id="game-over-screen" style="display: none;">
+            <h1>Watch Over</h1>
+            <p id="game-over-message">The thieves have slipped past you.</p>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <button class="button" id="restart-button">Try Again</button>
+        </div>
+
+        <div id="level-complete-screen" style="display: none;">
+            <h1>Area Secured</h1>
+            <p>You've made it through the hour. But they will be back, and more determined.</p>
+            <p>Level Score: <span id="level-score">0</span></p>
+            <button class="button" id="next-level-button">Proceed to Next Area</button>
+            <button class="button" id="upgrade-button">Visit Workshop</button>
+        </div>
+
+        <div id="upgrade-screen" style="display: none;">
+            <h1>Workshop</h1>
+            <p>Use your score to upgrade your gear. Total Score to Spend: <span id="total-score-display">0</span></p>
+            <div class="upgrade-grid">
+                <div class="upgrade-card" data-upgrade="speed">
+                    <h3>Running Shoes</h3>
+                    <p>Increase movement speed.</p>
+                    <p class="cost">Cost: 1000</p>
+                </div>
+                <div class="upgrade-card" data-upgrade="flashlight_recharge">
+                    <h3>Industrial Battery</h3>
+                    <p>Faster flashlight recharge.</p>
+                    <p class="cost">Cost: 1500</p>
+                </div>
+                 <div class="upgrade-card" data-upgrade="flashlight_capacity">
+                    <h3>High-Capacity Cell</h3>
+                    <p>Increases max flashlight energy.</p>
+                    <p class="cost">Cost: 1500</p>
+                </div>
+                <div class="upgrade-card" data-upgrade="decoy">
+                    <h3>Sound Decoy</h3>
+                    <p>Deploy a decoy to distract thieves (Press 'E').</p>
+                    <p class="cost">Cost: 3000</p>
+                </div>
+            </div>
+            <button class="button" id="continue-game-button">Continue to Next Level</button>
+        </div>
+
+        <div id="touch-controls">
+            <div id="joystick">
+                <div id="joystick-thumb"></div>
+            </div>
+        </div>
+    </div>
+    
+    <audio id="background-music" loop>
+        <source src="https://gameimages0.s3.us-east-2.amazonaws.com/Security/robbery-205343.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+    window.onload = function() {
+        // --- ASSET URLS ---
+        const ASSETS = {
+            guard: 'https://gameimages0.s3.us-east-2.amazonaws.com/Security/guard.png',
+            thief: 'https://gameimages0.s3.us-east-2.amazonaws.com/Security/thief.png',
+            cat: 'https://gameimages0.s3.us-east-2.amazonaws.com/Security/cat.png',
+            vault: 'https://gameimages0.s3.us-east-2.amazonaws.com/Security/vault.png',
+            background: 'https://i.imgur.com/f3Jt3Wc.jpg', // Keeping original background texture
+            decoy: 'https://i.imgur.com/x5dF1oV.png' // Placeholder for decoy sprite
+        };
+
+        // --- GAME SETUP ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const backgroundMusic = document.getElementById('background-music');
+
+        // UI Elements
+        const ui = {
+            score: document.getElementById('score'),
+            level: document.getElementById('level'),
+            timer: document.getElementById('timer'),
+            flashlightBar: document.getElementById('flashlight-bar'),
+            alarmFlash: document.getElementById('alarm-flash'),
+            startScreen: document.getElementById('start-screen'),
+            gameOverScreen: document.getElementById('game-over-screen'),
+            levelCompleteScreen: document.getElementById('level-complete-screen'),
+            upgradeScreen: document.getElementById('upgrade-screen'),
+            startButton: document.getElementById('start-button'),
+            restartButton: document.getElementById('restart-button'),
+            nextLevelButton: document.getElementById('next-level-button'),
+            upgradeButton: document.getElementById('upgrade-button'),
+            continueGameButton: document.getElementById('continue-game-button'),
+            finalScore: document.getElementById('final-score'),
+            levelScore: document.getElementById('level-score'),
+            gameOverMessage: document.getElementById('game-over-message'),
+            highScoresList: document.getElementById('high-scores-list'),
+            totalScoreDisplay: document.getElementById('total-score-display'),
+            touchControls: document.getElementById('touch-controls'),
+            joystick: document.getElementById('joystick'),
+            joystickThumb: document.getElementById('joystick-thumb'),
+            muteButton: document.getElementById('mute-button'),
+        };
+
+        let gameState = {
+            running: false,
+            paused: true,
+            level: 1,
+            score: 0,
+            timeLeft: 60,
+            levelTimer: null,
+            thievesEscaped: 0,
+            maxEscapes: 3,
+            isMuted: false,
+        };
+
+        let images = {};
+        let imagesLoaded = 0;
+        let totalImages = Object.keys(ASSETS).length;
+
+        // --- AUDIO CONTEXT (For dynamic sound effects without files) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type, ...args) {
+            if (!audioCtx) return;
+            try {
+                switch (type) {
+                    case 'catch':
+                        const oscillator = audioCtx.createOscillator();
+                        const gainNode = audioCtx.createGain();
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioCtx.destination);
+                        oscillator.type = 'sawtooth';
+                        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.2);
+                        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                        oscillator.start(audioCtx.currentTime);
+                        oscillator.stop(audioCtx.currentTime + 0.2);
+                        break;
+                    case 'alarm':
+                        const alarmOsc = audioCtx.createOscillator();
+                        alarmOsc.type = 'sine';
+                        alarmOsc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                        alarmOsc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.5);
+                        alarmOsc.connect(audioCtx.destination);
+                        alarmOsc.start();
+                        alarmOsc.stop(audioCtx.currentTime + 0.5);
+                        break;
+                    case 'cat':
+                        const catOsc = audioCtx.createOscillator();
+                        catOsc.type = 'sine';
+                        catOsc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+                        catOsc.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                        catOsc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+                        catOsc.connect(audioCtx.destination);
+                        catOsc.start();
+                        catOsc.stop(audioCtx.currentTime + 0.3);
+                        break;
+                    case 'upgrade':
+                         const upOsc = audioCtx.createOscillator();
+                         const upGain = audioCtx.createGain();
+                         upOsc.connect(upGain);
+                         upGain.connect(audioCtx.destination);
+                         upOsc.type = 'square';
+                         upOsc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                         upGain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                         upOsc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.2);
+                         upGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                         upOsc.start();
+                         upOsc.stop(audioCtx.currentTime + 0.2);
+                         break;
+                }
+            } catch (e) {
+                console.error("Audio playback failed:", e);
+            }
+        }
+        
+        // --- GAME ENTITY CLASSES ---
+        class Entity {
+            constructor(x, y, width, height, image) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.image = image;
+                this.scale = 1;
+                this.lastDrawTime = 0;
+            }
+
+            draw(ctx) {
+                const now = performance.now();
+                const timeDelta = now - (this.lastDrawTime || now);
+                this.lastDrawTime = now;
+
+                let scaleEffect = 1;
+                if (this.isPulsing) {
+                    scaleEffect = 1 + Math.sin(now / 200) * 0.1;
+                }
+                
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                ctx.scale(this.scale * scaleEffect, this.scale * scaleEffect);
+                ctx.drawImage(this.image, -this.width / 2, -this.height / 2, this.width, this.height);
+                ctx.restore();
+            }
+        }
+
+        class Player extends Entity {
+            constructor(x, y, width, height, image) {
+                super(x, y, width, height, image);
+                this.baseSpeed = 300; // pixels per second
+                this.speed = this.baseSpeed;
+                this.flashlight = {
+                    on: false,
+                    maxEnergy: 100,
+                    energy: 100,
+                    drainRate: 25, // per second
+                    rechargeRate: 15, // per second
+                    coneAngle: Math.PI / 4,
+                    coneRadius: 300,
+                };
+                this.upgrades = {
+                    speed: 0,
+                    flashlight_recharge: 0,
+                    flashlight_capacity: 0,
+                    decoy: 0,
+                };
+                this.decoys = [];
+                this.maxDecoys = 1;
+            }
+
+            update(deltaTime, keys, canvas) {
+                let dx = 0;
+                let dy = 0;
+                if (keys['w'] || keys['ArrowUp']) dy -= 1;
+                if (keys['s'] || keys['ArrowDown']) dy += 1;
+                if (keys['a'] || keys['ArrowLeft']) dx -= 1;
+                if (keys['d'] || keys['ArrowRight']) dx += 1;
+
+                // Handle joystick input
+                if (joystick.active) {
+                    dx = joystick.x;
+                    dy = joystick.y;
+                }
+
+                const magnitude = Math.sqrt(dx * dx + dy * dy);
+                if (magnitude > 0) {
+                    dx /= magnitude;
+                    dy /= magnitude;
+                }
+
+                this.x += dx * this.speed * deltaTime;
+                this.y += dy * this.speed * deltaTime;
+
+                // Clamp position to canvas bounds
+                this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
+                this.y = Math.max(0, Math.min(canvas.height - this.height, this.y));
+
+                // Flashlight logic
+                if (this.flashlight.on && this.flashlight.energy > 0) {
+                    this.flashlight.energy -= this.flashlight.drainRate * deltaTime;
+                } else {
+                    this.flashlight.energy += this.flashlight.rechargeRate * deltaTime;
+                }
+                this.flashlight.energy = Math.max(0, Math.min(this.flashlight.maxEnergy, this.flashlight.energy));
+                if (this.flashlight.energy <= 0) {
+                    this.flashlight.on = false;
+                }
+                
+                ui.flashlightBar.style.width = `${this.flashlight.energy}%`;
+            }
+
+            drawFlashlight(ctx, mouse) {
+                if (!this.flashlight.on || this.flashlight.energy <= 0) return;
+
+                const playerCenterX = this.x + this.width / 2;
+                const playerCenterY = this.y + this.height / 2;
+                const angle = Math.atan2(mouse.y - playerCenterY, mouse.x - playerCenterX);
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(playerCenterX, playerCenterY);
+                ctx.arc(playerCenterX, playerCenterY, this.flashlight.coneRadius, angle - this.flashlight.coneAngle / 2, angle + this.flashlight.coneAngle / 2);
+                ctx.closePath();
+
+                const gradient = ctx.createRadialGradient(playerCenterX, playerCenterY, 10, playerCenterX, playerCenterY, this.flashlight.coneRadius);
+                gradient.addColorStop(0, 'rgba(255, 255, 220, 0.4)');
+                gradient.addColorStop(0.5, 'rgba(255, 255, 220, 0.2)');
+                gradient.addColorStop(1, 'rgba(255, 255, 220, 0.0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            deployDecoy() {
+                if (this.upgrades.decoy > 0 && this.decoys.length < this.maxDecoys) {
+                    const decoy = new Decoy(this.x, this.y, 40, 40, images.decoy);
+                    this.decoys.push(decoy);
+                    // Decoy disappears after some time
+                    setTimeout(() => {
+                        this.decoys.shift();
+                    }, 5000);
+                }
+            }
+            
+            applyUpgrades() {
+                this.speed = this.baseSpeed * (1 + this.upgrades.speed * 0.15);
+                this.flashlight.rechargeRate = 15 * (1 + this.upgrades.flashlight_recharge * 0.25);
+                this.flashlight.maxEnergy = 100 * (1 + this.upgrades.flashlight_capacity * 0.25);
+            }
+        }
+        
+        class Decoy extends Entity {
+            constructor(x, y, width, height, image) {
+                super(x, y, width, height, image);
+                this.isPulsing = true;
+            }
+        }
+
+        class NPC extends Entity {
+            constructor(x, y, width, height, image, type) {
+                super(x, y, width, height, image);
+                this.type = type;
+                this.speed = 100 + Math.random() * 50;
+                this.target = { x: canvas.width / 2, y: 0 }; // Vault position
+                this.isStunned = false;
+                this.stunTimer = 0;
+                this.aiState = 'sneaking'; // sneaking, dashing, disguised
+                this.disguise = null; // 'cat'
+                
+                if(this.type === 'thief') {
+                    const aiRoll = Math.random();
+                    if(aiRoll < 0.2 * gameState.level * 0.5) {
+                        this.aiState = 'dashing';
+                        this.speed *= 1.5;
+                    } else if(aiRoll < 0.4 * gameState.level * 0.5 && gameState.level > 2) {
+                        this.aiState = 'disguised';
+                        this.image = images.cat;
+                        this.disguise = 'cat';
+                    }
+                }
+            }
+
+            update(deltaTime, player) {
+                if (this.isStunned) {
+                    this.stunTimer -= deltaTime;
+                    if (this.stunTimer <= 0) {
+                        this.isStunned = false;
+                        this.scale = 1;
+                    }
+                    return;
+                }
+                
+                let currentTarget = this.target;
+                // AI behavior: if a decoy exists, some thieves might go for it
+                if (player.decoys.length > 0 && this.type === 'thief' && Math.random() < 0.7) {
+                    currentTarget = player.decoys[0];
+                }
+
+                const dx = currentTarget.x - this.x;
+                const dy = currentTarget.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > 1) {
+                    this.x += (dx / distance) * this.speed * deltaTime;
+                    this.y += (dy / distance) * this.speed * deltaTime;
+                }
+            }
+            
+            stun() {
+                if (this.disguise === 'cat') { // Can't stun disguised thieves
+                    playSound('cat');
+                    return false;
+                }
+                this.isStunned = true;
+                this.stunTimer = 2; // 2 seconds stun
+                this.scale = 0.8; // Squash effect
+                return true;
+            }
+        }
+
+        // --- GAME STATE & LOGIC ---
+        let player, vault, npcs;
+        let keys = {};
+        let mouse = { x: 0, y: 0 };
+        let lastTime = 0;
+        
+        function initGame() {
+            gameState.level = 1;
+            gameState.score = 0;
+            player = new Player(canvas.width / 2 - 25, canvas.height - 100, 50, 50, images.guard);
+            initLevel();
+        }
+
+        function initLevel() {
+            gameState.running = true;
+            gameState.paused = false;
+            gameState.timeLeft = 60 + (gameState.level - 1) * 5;
+            gameState.thievesEscaped = 0;
+            ui.level.textContent = gameState.level;
+            ui.score.textContent = gameState.score;
+            
+            player.x = canvas.width / 2 - 25;
+            player.y = canvas.height - 100;
+            player.decoys = [];
+            player.applyUpgrades();
+
+            vault = new Entity(canvas.width / 2 - 50, -20, 100, 100, images.vault);
+            npcs = [];
+            spawnNPCs();
+
+            startTimer();
+            ui.levelCompleteScreen.style.display = 'none';
+            ui.upgradeScreen.style.display = 'none';
+            ui.gameOverScreen.style.display = 'none';
+            
+            if (lastTime === 0) { // Only request animation frame if not already running
+                lastTime = performance.now();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function spawnNPCs() {
+            const numThieves = 3 + gameState.level * 2;
+            const numCats = 2 + gameState.level;
+
+            for (let i = 0; i < numThieves; i++) {
+                setTimeout(() => {
+                    if(gameState.running) npcs.push(createNPC('thief'));
+                }, Math.random() * 50000);
+            }
+            for (let i = 0; i < numCats; i++) {
+                setTimeout(() => {
+                    if(gameState.running) npcs.push(createNPC('cat'));
+                }, Math.random() * 50000);
+            }
+        }
+
+        function createNPC(type) {
+            const x = Math.random() * (canvas.width - 50);
+            const y = canvas.height + Math.random() * 100;
+            const image = type === 'thief' ? images.thief : images.cat;
+            return new NPC(x, y, 40, 40, image, type);
+        }
+        
+        function startTimer() {
+            clearInterval(gameState.levelTimer);
+            gameState.levelTimer = setInterval(() => {
+                if (gameState.running && !gameState.paused) {
+                    gameState.timeLeft--;
+                    ui.timer.textContent = gameState.timeLeft;
+                    if (gameState.timeLeft <= 0) {
+                        levelComplete();
+                    }
+                }
+            }, 1000);
+        }
+
+        function levelComplete() {
+            gameState.running = false;
+            gameState.paused = true;
+            clearInterval(gameState.levelTimer);
+            ui.levelScore.textContent = gameState.score - (player.upgrades.speed * 1000 + player.upgrades.flashlight_recharge * 1500 + player.upgrades.flashlight_capacity * 1500 + player.upgrades.decoy * 3000);
+            ui.levelCompleteScreen.style.display = 'flex';
+            playSound('upgrade');
+        }
+
+        function gameOver(reason) {
+            gameState.running = false;
+            gameState.paused = true;
+            clearInterval(gameState.levelTimer);
+            backgroundMusic.pause();
+            ui.gameOverMessage.textContent = reason;
+            ui.finalScore.textContent = gameState.score;
+            ui.gameOverScreen.style.display = 'flex';
+            updateLeaderboard(gameState.score);
+        }
+
+        function gameLoop(timestamp) {
+            if (!gameState.running) {
+                lastTime = 0; // Stop the loop
+                return;
+            }
+            
+            const deltaTime = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            if (!gameState.paused) {
+                update(deltaTime);
+            }
+            draw();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(deltaTime) {
+            player.update(deltaTime, keys, canvas);
+            
+            // Update NPCs
+            for (let i = npcs.length - 1; i >= 0; i--) {
+                const npc = npcs[i];
+                npc.update(deltaTime, player);
+
+                // Check collision with vault
+                if (npc.y < 50) {
+                    if (npc.type === 'thief') {
+                        gameState.thievesEscaped++;
+                        playSound('alarm');
+                        ui.alarmFlash.style.display = 'block';
+                        setTimeout(() => ui.alarmFlash.style.display = 'none', 1000);
+                        if (gameState.thievesEscaped >= gameState.maxEscapes) {
+                            gameOver("The vault has been breached!");
+                        }
+                    }
+                    npcs.splice(i, 1);
+                    continue;
+                }
+
+                // Check collision with flashlight
+                if (player.flashlight.on && !npc.isStunned) {
+                    const playerCenterX = player.x + player.width / 2;
+                    const playerCenterY = player.y + player.height / 2;
+                    const angleToNpc = Math.atan2(npc.y - playerCenterY, npc.x - playerCenterX);
+                    const mouseAngle = Math.atan2(mouse.y - playerCenterY, mouse.x - playerCenterX);
+                    const angleDiff = Math.abs(angleToNpc - mouseAngle);
+
+                    const distanceToNpc = Math.hypot(npc.x - playerCenterX, npc.y - playerCenterY);
+
+                    if (distanceToNpc < player.flashlight.coneRadius && (angleDiff < player.flashlight.coneAngle / 2 || angleDiff > Math.PI * 2 - player.flashlight.coneAngle / 2)) {
+                        if (npc.stun()) {
+                           // Stun successful
+                        }
+                    }
+                }
+                
+                // Check collision with player (catching)
+                const dx = player.x - npc.x;
+                const dy = player.y - npc.y;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                if (distance < (player.width/2 + npc.width/2)) {
+                    if (npc.isStunned && npc.type === 'thief') {
+                        gameState.score += 100 * gameState.level;
+                        ui.score.textContent = gameState.score;
+                        npcs.splice(i, 1);
+                        playSound('catch');
+                    } else if (npc.type === 'cat' && !npc.isStunned) {
+                        // Distraction! Player gets slowed
+                        player.speed /= 2;
+                        playSound('cat');
+                        setTimeout(() => player.speed *= 2, 1000);
+                        npcs.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background texture
+            if (images.background) {
+                ctx.globalAlpha = 0.3;
+                const pat = ctx.createPattern(images.background, 'repeat');
+                ctx.fillStyle = pat;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.globalAlpha = 1.0;
+            }
+            
+            // Draw dust particles for atmosphere, even on start screen
+            drawParticles();
+
+            // Only draw game entities if the game is actually running
+            if (!gameState.running) {
+                return;
+            }
+
+            // Draw vault
+            vault.draw(ctx);
+            
+            // Draw decoys
+            player.decoys.forEach(decoy => decoy.draw(ctx));
+
+            // Draw NPCs
+            npcs.forEach(npc => npc.draw(ctx));
+
+            // Draw player
+            player.draw(ctx);
+
+            // Draw flashlight cone and global darkness
+            ctx.save();
+            ctx.globalCompositeOperation = 'source-over';
+            player.drawFlashlight(ctx, mouse);
+
+            // Vignette and darkness effect
+            ctx.globalCompositeOperation = 'multiply';
+            const gradient = ctx.createRadialGradient(
+                player.x + player.width/2, player.y + player.height/2, 150,
+                player.x + player.width/2, player.y + player.height/2, canvas.width
+            );
+            gradient.addColorStop(0, 'rgba(20, 20, 30, 0)');
+            gradient.addColorStop(1, 'rgba(0, 0, 10, 0.95)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+        }
+        
+        let particles = [];
+        function createParticles() {
+            for(let i=0; i<100; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    radius: Math.random() * 1.5
+                });
+            }
+        }
+
+        function drawParticles() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+
+        // --- EVENT HANDLERS & UI ---
+        function handleResize() {
+            const container = document.getElementById('game-container');
+            const aspectRatio = 1200 / 800;
+            const newWidth = window.innerWidth;
+            const newHeight = window.innerHeight;
+
+            let finalWidth, finalHeight;
+            if (newWidth / newHeight > aspectRatio) {
+                finalHeight = newHeight;
+                finalWidth = finalHeight * aspectRatio;
+            } else {
+                finalWidth = newWidth;
+                finalHeight = finalWidth / aspectRatio;
+            }
+
+            container.style.width = `${finalWidth}px`;
+            container.style.height = `${finalHeight}px`;
+
+            canvas.width = 1200;
+            canvas.height = 800;
+            
+            draw(); // Redraw static elements on resize
+        }
+        
+        window.addEventListener('resize', handleResize);
+        
+        window.addEventListener('keydown', e => { 
+            keys[e.key] = true; 
+            if (player && (e.key === 'e' || e.key === 'E')) {
+                player.deployDecoy();
+            }
+        });
+        window.addEventListener('keyup', e => { keys[e.key] = false; });
+        
+        canvas.addEventListener('mousedown', e => { if(player && e.button === 0) player.flashlight.on = true; });
+        canvas.addEventListener('mouseup', e => { if(player && e.button === 0) player.flashlight.on = false; });
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            mouse.x = (e.clientX - rect.left) * scaleX;
+            mouse.y = (e.clientY - rect.top) * scaleY;
+        });
+
+        // Touch Controls
+        function setupTouchControls() {
+            if ('ontouchstart' in window) {
+                ui.touchControls.style.display = 'block';
+                let touchId = null;
+                const joystickRect = ui.joystick.getBoundingClientRect();
+                const centerX = joystickRect.left + joystickRect.width / 2;
+                const centerY = joystickRect.top + joystickRect.height / 2;
+                const maxDist = joystickRect.width / 2;
+
+                // Flashlight touch
+                canvas.addEventListener('touchstart', e => {
+                    if (!player) return;
+                    // Find a touch that isn't the joystick
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        const touch = e.changedTouches[i];
+                        const dist = Math.hypot(touch.clientX - centerX, touch.clientY - centerY);
+                        if (dist > maxDist) {
+                            player.flashlight.on = true;
+                            const rect = canvas.getBoundingClientRect();
+                            const scaleX = canvas.width / rect.width;
+                            const scaleY = canvas.height / rect.height;
+                            mouse.x = (touch.clientX - rect.left) * scaleX;
+                            mouse.y = (touch.clientY - rect.top) * scaleY;
+                            break;
+                        }
+                    }
+                }, { passive: false });
+
+                canvas.addEventListener('touchend', e => { if(player) player.flashlight.on = false; });
+                canvas.addEventListener('touchcancel', e => { if(player) player.flashlight.on = false; });
+                canvas.addEventListener('touchmove', e => {
+                     e.preventDefault();
+                    if(player && player.flashlight.on) {
+                         for (let i = 0; i < e.changedTouches.length; i++) {
+                            const touch = e.changedTouches[i];
+                            const dist = Math.hypot(touch.clientX - centerX, touch.clientY - centerY);
+                            if (dist > maxDist) {
+                                const rect = canvas.getBoundingClientRect();
+                                const scaleX = canvas.width / rect.width;
+                                const scaleY = canvas.height / rect.height;
+                                mouse.x = (touch.clientX - rect.left) * scaleX;
+                                mouse.y = (touch.clientY - rect.top) * scaleY;
+                                break;
+                            }
+                        }
+                    }
+                }, { passive: false });
+
+                // Joystick touch
+                const joystick = { active: false, x: 0, y: 0 };
+                window.joystick = joystick;
+
+                ui.touchControls.addEventListener('touchstart', e => {
+                    e.preventDefault();
+                    touchId = e.changedTouches[0].identifier;
+                    joystick.active = true;
+                }, { passive: false });
+
+                const endTouch = (e) => {
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        if (e.changedTouches[i].identifier === touchId) {
+                            joystick.active = false;
+                            joystick.x = 0;
+                            joystick.y = 0;
+                            ui.joystickThumb.style.transform = `translate(0px, 0px)`;
+                            touchId = null;
+                            break;
+                        }
+                    }
+                };
+                ui.touchControls.addEventListener('touchend', endTouch);
+                ui.touchControls.addEventListener('touchcancel', endTouch);
+
+                ui.touchControls.addEventListener('touchmove', e => {
+                    e.preventDefault();
+                    if (!joystick.active) return;
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        if (e.changedTouches[i].identifier === touchId) {
+                            const touch = e.changedTouches[i];
+                            let dx = touch.clientX - centerX;
+                            let dy = touch.clientY - centerY;
+                            const dist = Math.hypot(dx, dy);
+
+                            if (dist > maxDist) {
+                                dx = (dx / dist) * maxDist;
+                                dy = (dy / dist) * maxDist;
+                            }
+                            
+                            joystick.x = dx / maxDist;
+                            joystick.y = dy / maxDist;
+                            
+                            ui.joystickThumb.style.transform = `translate(${dx}px, ${dy}px)`;
+                            break;
+                        }
+                    }
+                }, { passive: false });
+            }
+        }
+
+
+        ui.startButton.addEventListener('click', () => {
+            ui.startScreen.style.display = 'none';
+            backgroundMusic.play().catch(e => console.error("Audio play failed:", e));
+            initGame();
+        });
+
+        ui.restartButton.addEventListener('click', () => {
+            ui.gameOverScreen.style.display = 'none';
+            backgroundMusic.currentTime = 0;
+            backgroundMusic.play().catch(e => console.error("Audio play failed:", e));
+            initGame();
+        });
+
+        ui.nextLevelButton.addEventListener('click', () => {
+            gameState.level++;
+            initLevel();
+        });
+        
+        ui.upgradeButton.addEventListener('click', () => {
+            ui.levelCompleteScreen.style.display = 'none';
+            ui.totalScoreDisplay.textContent = gameState.score;
+            ui.upgradeScreen.style.display = 'flex';
+        });
+        
+        ui.continueGameButton.addEventListener('click', () => {
+            gameState.level++;
+            initLevel();
+        });
+
+        ui.muteButton.addEventListener('click', () => {
+            gameState.isMuted = !gameState.isMuted;
+            backgroundMusic.muted = gameState.isMuted;
+            ui.muteButton.textContent = gameState.isMuted ? '🔇' : '🔊';
+        });
+
+        document.querySelectorAll('.upgrade-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const upgradeType = card.dataset.upgrade;
+                const costs = { speed: 1000, flashlight_recharge: 1500, flashlight_capacity: 1500, decoy: 3000 };
+                const cost = costs[upgradeType];
+                if (gameState.score >= cost) {
+                    gameState.score -= cost;
+                    player.upgrades[upgradeType]++;
+                    ui.totalScoreDisplay.textContent = gameState.score;
+                    card.style.borderColor = '#00ff00';
+                    card.style.pointerEvents = 'none'; // Prevent multiple buys for now
+                    playSound('upgrade');
+                } else {
+                    // Not enough score feedback
+                    card.style.animation = 'shake 0.5s';
+                    setTimeout(() => card.style.animation = '', 500);
+                }
+            });
+        });
+        
+        // --- LEADERBOARD ---
+        function updateLeaderboard(score) {
+            const highScores = JSON.parse(localStorage.getItem('museumHeistScores')) || [];
+            highScores.push(score);
+            highScores.sort((a, b) => b - a);
+            highScores.splice(5); // Keep top 5
+            localStorage.setItem('museumHeistScores', JSON.stringify(highScores));
+            displayLeaderboard();
+        }
+
+        function displayLeaderboard() {
+            const highScores = JSON.parse(localStorage.getItem('museumHeistScores')) || [];
+            ui.highScoresList.innerHTML = '';
+            if (highScores.length === 0) {
+                 ui.highScoresList.innerHTML = '<li>No scores yet. Be the first!</li>';
+            } else {
+                highScores.forEach(score => {
+                    const li = document.createElement('li');
+                    li.textContent = score;
+                    ui.highScoresList.appendChild(li);
+                });
+            }
+        }
+
+        // --- INITIALIZATION ---
+        function loadAssets() {
+            for (const key in ASSETS) {
+                images[key] = new Image();
+                images[key].src = ASSETS[key];
+                images[key].onload = () => {
+                    imagesLoaded++;
+                    if (imagesLoaded === totalImages) {
+                        // All images loaded, show start screen
+                        handleResize();
+                        createParticles();
+                        displayLeaderboard();
+                        setupTouchControls();
+                        ui.startScreen.style.display = 'flex';
+                    }
+                };
+                images[key].onerror = () => {
+                    console.error(`Failed to load asset: ${key}`);
+                    imagesLoaded++; // Still count it to not block the game
+                     if (imagesLoaded === totalImages) {
+                        handleResize();
+                        createParticles();
+                        displayLeaderboard();
+                        setupTouchControls();
+                        ui.startScreen.style.display = 'flex';
+                    }
+                }
+            }
+        }
+
+        loadAssets(); // Start the loading process
+    };
+
+    // Add keyframes for shake animation
+    const styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = `@keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(5px); }
+      50% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+      100% { transform: translateX(0); }
+    }`;
+    document.head.appendChild(styleSheet);
+
+    </script>
+</body>
+</html>
