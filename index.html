@@ -5,36 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Museum Heist: The Midnight Hour</title>
     <style>
-        * {
+        body, html {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body, html {
             overflow: hidden;
             background-color: #000;
             color: #fff;
             font-family: 'Courier New', Courier, monospace;
-            height: 100vh;
-            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
         }
-        
         #game-container {
             position: relative;
             width: 100vw;
             height: 100vh;
+            max-width: 1200px;
+            max-height: 800px;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
+            border: 2px solid #555;
+            border-radius: 15px;
             overflow: hidden;
         }
-        
         canvas {
             display: block;
             width: 100%;
             height: 100%;
             background-color: #1a1a1a;
-            touch-action: none;
         }
-        
         #ui-layer {
             position: absolute;
             top: 0;
@@ -42,37 +41,40 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
         }
-        
         .hud {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 18px;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            text-shadow: 0 0 10px #ff0000;
+            width: 100%;
         }
-        
         .hud-left, .hud-right {
             display: flex;
             align-items: center;
             gap: 20px;
         }
-        
-        #flashlight-hud {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        #score, #level, #timer {
+            font-size: clamp(16px, 3vw, 24px);
+            font-weight: bold;
         }
-        
+        .icon-button {
+            background: none;
+            border: none;
+            font-size: clamp(20px, 3vw, 28px);
+            cursor: pointer;
+            color: white;
+            text-shadow: 0 0 5px #fff;
+            pointer-events: all;
+            padding: 0;
+            margin: 0;
+            line-height: 1;
+        }
         #flashlight-bar-container {
             width: 200px;
             height: 20px;
@@ -81,7 +83,6 @@
             border-radius: 10px;
             padding: 2px;
         }
-        
         #flashlight-bar {
             width: 100%;
             height: 100%;
@@ -89,25 +90,13 @@
             border-radius: 8px;
             transition: width 0.2s ease-out;
         }
-        
-        .icon-button {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: white;
-            text-shadow: 0 0 5px #fff;
-            pointer-events: all;
-            padding: 5px;
-        }
-        
-        .screen {
+        #game-over-screen, #start-screen, #level-complete-screen, #upgrade-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
+            background-color: rgba(0, 0, 0, 0.85);
             color: white;
             display: flex;
             flex-direction: column;
@@ -115,30 +104,23 @@
             align-items: center;
             text-align: center;
             z-index: 10;
+            backdrop-filter: blur(5px);
             padding: 20px;
+            box-sizing: border-box;
         }
-        
         h1 {
-            font-size: 48px;
+            font-size: clamp(32px, 8vw, 64px);
             text-shadow: 0 0 20px #ff4500;
             margin-bottom: 20px;
         }
-        
-        h2 {
-            font-size: 32px;
-            margin-bottom: 20px;
-        }
-        
         p {
-            font-size: 18px;
+            font-size: clamp(16px, 3vw, 22px);
             max-width: 600px;
             line-height: 1.6;
-            margin-bottom: 20px;
         }
-        
         .button {
             padding: 15px 30px;
-            font-size: 20px;
+            font-size: clamp(18px, 4vw, 24px);
             color: white;
             background: #ff4500;
             border: none;
@@ -148,24 +130,22 @@
             text-transform: uppercase;
             font-weight: bold;
             letter-spacing: 2px;
-            box-shadow: 0 0 20px #ff4500;
+            box-shadow: 0 0 20px #ff4500, inset 0 0 10px rgba(255,255,255,0.3);
             transition: all 0.3s ease;
+            pointer-events: all;
         }
-        
         .button:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 30px #ff8c00;
+            box-shadow: 0 0 30px #ff8c00, inset 0 0 15px rgba(255,255,255,0.5);
         }
-        
         #leaderboard {
             margin-top: 20px;
+            font-size: clamp(14px, 2.5vw, 18px);
         }
-        
         #leaderboard ol {
             list-style-type: decimal;
-            padding-left: 20px;
+            padding-left: 40px;
         }
-        
         .upgrade-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -174,7 +154,6 @@
             max-width: 800px;
             margin-top: 30px;
         }
-        
         .upgrade-card {
             background: rgba(255,255,255,0.1);
             border: 2px solid #ff4500;
@@ -182,28 +161,22 @@
             padding: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
+            pointer-events: all;
         }
-        
         .upgrade-card:hover {
             background: rgba(255, 69, 0, 0.3);
             transform: translateY(-5px);
         }
-        
         .upgrade-card h3 {
             margin-top: 0;
-            margin-bottom: 10px;
         }
-        
         .upgrade-card p {
             font-size: 14px;
-            margin: 5px 0;
         }
-        
-        .cost {
+        .upgrade-card .cost {
             font-weight: bold;
             color: #ffd700;
         }
-        
         #alarm-flash {
             position: absolute;
             top: 0;
@@ -211,16 +184,36 @@
             width: 100%;
             height: 100%;
             background: radial-gradient(circle, rgba(255,0,0,0.6) 0%, rgba(255,0,0,0) 70%);
-            z-index: 3;
+            z-index: 5;
             animation: alarm-pulse 1s infinite;
             display: none;
         }
-        
         @keyframes alarm-pulse {
             0%, 100% { opacity: 0; }
             50% { opacity: 1; }
         }
-        
+        #role-select-screen, #difficulty-select-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 20;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(5px); }
+            50% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+            100% { transform: translateX(0); }
+        }
         #breakin-prompt {
             position: absolute;
             left: 50%;
@@ -230,100 +223,9 @@
             color: #fff;
             padding: 20px 40px;
             border-radius: 10px;
-            font-size: 24px;
+            font-size: 2rem;
             z-index: 30;
             display: none;
-            border: 2px solid #ff4500;
-        }
-        
-        /* Mobile Controls */
-        #mobile-controls {
-            display: none;
-            position: absolute;
-            left: 0;
-            bottom: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            z-index: 20;
-        }
-        
-        .joystick-container {
-            position: absolute;
-            left: 20px;
-            bottom: 80px;
-            width: 120px;
-            height: 120px;
-            pointer-events: all;
-            touch-action: none;
-        }
-        
-        .joystick-base {
-            width: 100%;
-            height: 100%;
-            background: rgba(255,255,255,0.1);
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            position: absolute;
-        }
-        
-        .joystick-stick {
-            width: 40px;
-            height: 40px;
-            background: rgba(255,255,255,0.8);
-            border-radius: 50%;
-            position: absolute;
-            left: 40px;
-            top: 40px;
-            transition: left 0.1s, top 0.1s;
-        }
-        
-        .mobile-buttons {
-            position: absolute;
-            right: 20px;
-            bottom: 80px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            pointer-events: all;
-        }
-        
-        .mobile-btn {
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 69, 0, 0.8);
-            border: 2px solid #fff;
-            border-radius: 50%;
-            color: #fff;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 10px #ff4500;
-            cursor: pointer;
-            user-select: none;
-            touch-action: none;
-        }
-        
-        .mobile-btn:active {
-            background: #ff8c00;
-            transform: scale(0.95);
-        }
-        
-        @media (max-width: 768px) {
-            h1 { font-size: 36px; }
-            h2 { font-size: 24px; }
-            p, .button { font-size: 16px; }
-            .hud { font-size: 16px; }
-            #mobile-controls { display: block; }
-        }
-        
-        @keyframes shake {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(5px); }
-            50% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-            100% { transform: translateX(0); }
         }
     </style>
 </head>
@@ -332,28 +234,27 @@
         <canvas id="game-canvas"></canvas>
         <div id="alarm-flash"></div>
         <div id="breakin-prompt">Hold 'E' to break into the vault!</div>
-        
         <div id="ui-layer">
             <div class="hud">
                 <div class="hud-left">
                     <span>Score: <span id="score">0</span></span>
                     <button id="mute-button" class="icon-button">🔊</button>
+                    <span id="music-status" style="font-size: 12px; color: #888;">♪</span>
                 </div>
                 <div class="hud-right">
                     <span>Level: <span id="level">1</span></span>
                     <span>Time: <span id="timer">60</span>s</span>
                 </div>
             </div>
-            
-            <div id="flashlight-hud">
-                <span>Flashlight:</span>
+            <div class="hud">
+                <div>Flashlight</div>
                 <div id="flashlight-bar-container">
                     <div id="flashlight-bar"></div>
                 </div>
             </div>
         </div>
 
-        <div id="start-screen" class="screen">
+        <div id="start-screen">
             <h1>Museum Heist</h1>
             <h2>The Midnight Hour</h2>
             <p>You are the last line of defense. A legendary syndicate of art thieves has targeted the museum tonight. They are swift, cunning, and will stop at nothing. Use your flashlight to stun and apprehend them before they reach the vault. But beware... the darkness holds more than just thieves. Don't get distracted.</p>
@@ -364,14 +265,14 @@
             </div>
         </div>
 
-        <div id="game-over-screen" class="screen" style="display: none;">
+        <div id="game-over-screen" style="display: none;">
             <h1>Watch Over</h1>
             <p id="game-over-message">The thieves have slipped past you.</p>
             <p>Final Score: <span id="final-score">0</span></p>
             <button class="button" id="restart-button">Try Again</button>
         </div>
 
-        <div id="level-complete-screen" class="screen" style="display: none;">
+        <div id="level-complete-screen" style="display: none;">
             <h1>Area Secured</h1>
             <p>You've made it through the hour. But they will be back, and more determined.</p>
             <p>Level Score: <span id="level-score">0</span></p>
@@ -379,7 +280,7 @@
             <button class="button" id="upgrade-button">Visit Workshop</button>
         </div>
 
-        <div id="upgrade-screen" class="screen" style="display: none;">
+        <div id="upgrade-screen" style="display: none;">
             <h1>Workshop</h1>
             <p>Use your score to upgrade your gear. Total Score to Spend: <span id="total-score-display">0</span></p>
             <div class="upgrade-grid">
@@ -407,113 +308,80 @@
             <button class="button" id="continue-game-button">Continue to Next Level</button>
         </div>
 
-        <div id="role-select-screen" class="screen" style="display: none;">
+        <div id="role-select-screen">
             <h1>Choose Your Role</h1>
             <button class="button" id="play-guard">Play as Security Guard</button>
             <button class="button" id="play-thief">Play as Thief</button>
         </div>
 
-        <div id="difficulty-select-screen" class="screen" style="display: none;">
+        <div id="difficulty-select-screen">
             <h1>Select Difficulty</h1>
             <button class="button" data-difficulty="easy">Easy</button>
             <button class="button" data-difficulty="medium">Medium</button>
             <button class="button" data-difficulty="hard">Hard</button>
         </div>
-        
-        <div id="mobile-controls">
-            <div class="joystick-container" id="joystick-container">
-                <div class="joystick-base"></div>
-                <div class="joystick-stick" id="joystick-stick"></div>
-            </div>
-            <div class="mobile-buttons">
-                <div class="mobile-btn" id="flashlight-btn" title="Flashlight">🔦</div>
-                <div class="mobile-btn" id="decoy-btn" title="Decoy">📻</div>
-                <div class="mobile-btn" id="action-btn" title="Action">E</div>
-            </div>
-        </div>
     </div>
 
+    <audio id="background-music" loop>
+        <source src="https://gameimages0.s3.us-east-2.amazonaws.com/Security/robbery-205343.mp3" type="audio/mpeg">
+    </audio>
+
     <script>
-        console.log("Game loading...");
-        
-        // Global game variables
-        let canvas, ctx;
-        let gameState = {
-            running: false,
-            paused: true,
-            level: 1,
-            score: 0,
-            timeLeft: 60,
-            levelTimer: null,
-            thievesEscaped: 0,
-            maxEscapes: 3,
-            isMuted: false,
-            role: null,
-            breakInTimer: 0,
-            difficulty: 'medium',
-        };
-        
-        let player, vault, npcs = [];
-        let keys = {};
-        let mouse = { x: 0, y: 0 };
-        let lastTime = 0;
-        let particles = [];
-        let images = {};
-        let pendingRole = null;
-        let highScores = [];
-        
-        // Mobile controls
-        let isTouch = 'ontouchstart' in window;
-        let joystickActive = false;
-        let joystickPos = { x: 0, y: 0 };
-        let mobileFlashlight = false;
-        let mobileAction = false;
+        window.onload = function() {
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            const backgroundMusic = document.getElementById('background-music');
 
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM loaded, initializing game...");
-            initializeGame();
-        });
+            // UI Elements
+            const ui = {
+                score: document.getElementById('score'),
+                level: document.getElementById('level'),
+                timer: document.getElementById('timer'),
+                flashlightBar: document.getElementById('flashlight-bar'),
+                alarmFlash: document.getElementById('alarm-flash'),
+                startScreen: document.getElementById('start-screen'),
+                gameOverScreen: document.getElementById('game-over-screen'),
+                levelCompleteScreen: document.getElementById('level-complete-screen'),
+                upgradeScreen: document.getElementById('upgrade-screen'),
+                startButton: document.getElementById('start-button'),
+                restartButton: document.getElementById('restart-button'),
+                nextLevelButton: document.getElementById('next-level-button'),
+                upgradeButton: document.getElementById('upgrade-button'),
+                continueGameButton: document.getElementById('continue-game-button'),
+                finalScore: document.getElementById('final-score'),
+                levelScore: document.getElementById('level-score'),
+                gameOverMessage: document.getElementById('game-over-message'),
+                highScoresList: document.getElementById('high-scores-list'),
+                totalScoreDisplay: document.getElementById('total-score-display'),
+                muteButton: document.getElementById('mute-button'),
+                roleSelectScreen: document.getElementById('role-select-screen'),
+                playGuardButton: document.getElementById('play-guard'),
+                playThiefButton: document.getElementById('play-thief'),
+                difficultySelectScreen: document.getElementById('difficulty-select-screen'),
+                breakInPrompt: document.getElementById('breakin-prompt'),
+                musicStatus: document.getElementById('music-status')
+            };
 
-        function initializeGame() {
-            try {
-                canvas = document.getElementById('game-canvas');
-                ctx = canvas.getContext('2d');
-                
-                if (!canvas || !ctx) {
-                    throw new Error("Canvas not found");
-                }
-                
-                console.log("Canvas initialized");
-                
-                // Set up canvas
-                handleResize();
-                
-                // Create images
-                createImages();
-                
-                // Set up event listeners
-                setupEventListeners();
-                
-                // Create particles
-                createParticles();
-                
-                // Display leaderboard
-                displayLeaderboard();
-                
-                // Start particle animation
-                startParticleLoop();
-                
-                console.log("Game initialized successfully");
-                
-            } catch (error) {
-                console.error("Failed to initialize game:", error);
-            }
-        }
+            let gameState = {
+                running: false,
+                paused: true,
+                level: 1,
+                score: 0,
+                timeLeft: 60,
+                levelTimer: null,
+                thievesEscaped: 0,
+                maxEscapes: 3,
+                isMuted: false,
+                role: null,
+                breakInTimer: 0,
+                difficulty: 'medium',
+            };
 
-        function createImages() {
-            console.log("Creating images...");
-            
+            let pendingRole = null;
+            let highScores = [];
+
+            // Create simple placeholder images using canvas
+            const images = {};
             function createSimpleImage(width, height, color, shape = 'rect', icon = '') {
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = width;
@@ -529,6 +397,7 @@
                     tempCtx.fillRect(2, 2, width-4, height-4);
                 }
                 
+                // Add icon/symbol
                 if (icon) {
                     tempCtx.fillStyle = 'white';
                     tempCtx.font = `${Math.min(width, height) * 0.5}px Arial`;
@@ -540,273 +409,1012 @@
                 return tempCanvas;
             }
 
+            // Create images
             images.guard = createSimpleImage(50, 50, '#0088ff', 'circle', '👮');
             images.thief = createSimpleImage(40, 40, '#ff0088', 'circle', '🥷');
             images.cat = createSimpleImage(30, 30, '#ffaa00', 'circle', '🐱');
             images.vault = createSimpleImage(100, 100, '#888888', 'rect', '🏛️');
             images.decoy = createSimpleImage(40, 40, '#00ff88', 'circle', '📻');
-            
-            console.log("Images created");
-        }
 
-        function setupEventListeners() {
-            console.log("Setting up event listeners...");
-            
-            // Window events
+            // Audio context for sound effects
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            function playSound(type) {
+                if (gameState.isMuted || !audioCtx) return;
+                try {
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    
+                    switch (type) {
+                        case 'catch':
+                            oscillator.type = 'sawtooth';
+                            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                            oscillator.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.2);
+                            break;
+                        case 'alarm':
+                            oscillator.type = 'sine';
+                            oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+                            oscillator.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.5);
+                            break;
+                        case 'cat':
+                            oscillator.type = 'sine';
+                            oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime);
+                            oscillator.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+                            break;
+                        case 'upgrade':
+                            oscillator.type = 'square';
+                            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+                            oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.2);
+                            break;
+                    }
+                    
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.3);
+                } catch (e) {
+                    console.error("Audio playback failed:", e);
+                }
+            }
+
+            // Entity classes
+            class Entity {
+                constructor(x, y, width, height, image) {
+                    this.x = x;
+                    this.y = y;
+                    this.width = width;
+                    this.height = height;
+                    this.image = image;
+                    this.scale = 1;
+                    this.isPulsing = false;
+                }
+
+                draw(ctx) {
+                    let scaleEffect = 1;
+                    if (this.isPulsing) {
+                        scaleEffect = 1 + Math.sin(Date.now() / 200) * 0.1;
+                    }
+                    
+                    ctx.save();
+                    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                    ctx.scale(this.scale * scaleEffect, this.scale * scaleEffect);
+                    ctx.drawImage(this.image, -this.width / 2, -this.height / 2, this.width, this.height);
+                    ctx.restore();
+                }
+            }
+
+            class Player extends Entity {
+                constructor(x, y, width, height, image) {
+                    super(x, y, width, height, image);
+                    this.baseSpeed = 300;
+                    this.speed = this.baseSpeed;
+                    this.flashlight = {
+                        on: false,
+                        maxEnergy: 100,
+                        energy: 100,
+                        drainRate: 25,
+                        rechargeRate: 15,
+                        coneAngle: Math.PI / 4,
+                        coneRadius: 300,
+                    };
+                    this.upgrades = {
+                        speed: 0,
+                        flashlight_recharge: 0,
+                        flashlight_capacity: 0,
+                        decoy: 0,
+                    };
+                    this.decoys = [];
+                    this.maxDecoys = 1;
+                }
+
+                update(deltaTime, keys, canvas) {
+                    let dx = 0;
+                    let dy = 0;
+                    if (keys['w'] || keys['ArrowUp']) dy -= 1;
+                    if (keys['s'] || keys['ArrowDown']) dy += 1;
+                    if (keys['a'] || keys['ArrowLeft']) dx -= 1;
+                    if (keys['d'] || keys['ArrowRight']) dx += 1;
+
+                    const magnitude = Math.sqrt(dx * dx + dy * dy);
+                    if (magnitude > 0) {
+                        dx /= magnitude;
+                        dy /= magnitude;
+                    }
+
+                    this.x += dx * this.speed * deltaTime;
+                    this.y += dy * this.speed * deltaTime;
+
+                    this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
+                    this.y = Math.max(0, Math.min(canvas.height - this.height, this.y));
+
+                    // Flashlight logic
+                    if (this.flashlight.on && this.flashlight.energy > 0) {
+                        this.flashlight.energy -= this.flashlight.drainRate * deltaTime;
+                    } else {
+                        this.flashlight.energy += this.flashlight.rechargeRate * deltaTime;
+                    }
+                    this.flashlight.energy = Math.max(0, Math.min(this.flashlight.maxEnergy, this.flashlight.energy));
+                    
+                    if (this.flashlight.energy <= 0) {
+                        this.flashlight.on = false;
+                    }
+                    
+                    ui.flashlightBar.style.width = `${(this.flashlight.energy / this.flashlight.maxEnergy) * 100}%`;
+                }
+
+                drawFlashlight(ctx, mouse) {
+                    if (!this.flashlight.on || this.flashlight.energy <= 0) return;
+
+                    const playerCenterX = this.x + this.width / 2;
+                    const playerCenterY = this.y + this.height / 2;
+                    const angle = Math.atan2(mouse.y - playerCenterY, mouse.x - playerCenterX);
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(playerCenterX, playerCenterY);
+                    ctx.arc(playerCenterX, playerCenterY, this.flashlight.coneRadius, 
+                           angle - this.flashlight.coneAngle / 2, angle + this.flashlight.coneAngle / 2);
+                    ctx.closePath();
+
+                    const gradient = ctx.createRadialGradient(
+                        playerCenterX, playerCenterY, 10, 
+                        playerCenterX, playerCenterY, this.flashlight.coneRadius
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 255, 220, 0.4)');
+                    gradient.addColorStop(0.5, 'rgba(255, 255, 220, 0.2)');
+                    gradient.addColorStop(1, 'rgba(255, 255, 220, 0.0)');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                deployDecoy() {
+                    if (this.upgrades.decoy > 0 && this.decoys.length < this.maxDecoys) {
+                        const decoy = new Decoy(this.x, this.y, 40, 40, images.decoy);
+                        this.decoys.push(decoy);
+                        setTimeout(() => {
+                            const index = this.decoys.indexOf(decoy);
+                            if (index > -1) this.decoys.splice(index, 1);
+                        }, 5000);
+                    }
+                }
+
+                applyUpgrades() {
+                    this.speed = this.baseSpeed * (1 + this.upgrades.speed * 0.15);
+                    this.flashlight.rechargeRate = 15 * (1 + this.upgrades.flashlight_recharge * 0.25);
+                    this.flashlight.maxEnergy = 100 * (1 + this.upgrades.flashlight_capacity * 0.25);
+                    this.flashlight.energy = Math.min(this.flashlight.energy, this.flashlight.maxEnergy);
+                }
+            }
+
+            class Decoy extends Entity {
+                constructor(x, y, width, height, image) {
+                    super(x, y, width, height, image);
+                    this.isPulsing = true;
+                }
+            }
+
+            class NPC extends Entity {
+                constructor(x, y, width, height, image, type) {
+                    super(x, y, width, height, image);
+                    this.type = type;
+                    this.speed = 100 + Math.random() * 50;
+                    this.target = { x: canvas.width / 2, y: 0 };
+                    this.isStunned = false;
+                    this.stunTimer = 0;
+                    this.aiState = 'sneaking';
+                    this.disguise = null;
+                    
+                    if (this.type === 'thief') {
+                        const aiRoll = Math.random();
+                        if (aiRoll < 0.2 * gameState.level * 0.5) {
+                            this.aiState = 'dashing';
+                            this.speed *= 1.5;
+                        } else if (aiRoll < 0.4 * gameState.level * 0.5 && gameState.level > 2) {
+                            this.aiState = 'disguised';
+                            this.image = images.cat;
+                            this.disguise = 'cat';
+                        }
+                    }
+                }
+
+                update(deltaTime, player) {
+                    if (this.isStunned) {
+                        this.stunTimer -= deltaTime;
+                        if (this.stunTimer <= 0) {
+                            this.isStunned = false;
+                            this.scale = 1;
+                        }
+                        return;
+                    }
+                    
+                    let currentTarget = this.target;
+                    if (player.decoys.length > 0 && this.type === 'thief' && Math.random() < 0.7) {
+                        currentTarget = player.decoys[0];
+                    }
+
+                    const dx = currentTarget.x - this.x;
+                    const dy = currentTarget.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance > 1) {
+                        this.x += (dx / distance) * this.speed * deltaTime;
+                        this.y += (dy / distance) * this.speed * deltaTime;
+                    }
+                }
+
+                stun() {
+                    if (this.disguise === 'cat') {
+                        playSound('cat');
+                        return false;
+                    }
+                    this.isStunned = true;
+                    this.stunTimer = 2;
+                    this.scale = 0.8;
+                    return true;
+                }
+            }
+
+            class GuardNPC extends Entity {
+                constructor(x, y, width, height, image) {
+                    super(x, y, width, height, image);
+                    this.speed = 120;
+                    this.visionAngle = Math.PI / 3;
+                    this.visionDist = 250;
+                    this.state = 'patrol';
+                    this.patrolMinX = 100;
+                    this.patrolMaxX = 1000;
+                    this.patrolDir = 1;
+                    this.chaseTimer = 0;
+                    this.facing = 0;
+                }
+
+                update(deltaTime, player) {
+                    if (this.state === 'patrol') {
+                        if (this.patrolType === 'horizontal') {
+                            this.x += this.patrolDir * this.speed * deltaTime;
+                            if (this.x <= this.patrolMinX) { 
+                                this.x = this.patrolMinX; 
+                                this.patrolDir = 1; 
+                            }
+                            if (this.x >= this.patrolMaxX) { 
+                                this.x = this.patrolMaxX; 
+                                this.patrolDir = -1; 
+                            }
+                            this.facing = this.patrolDir > 0 ? 0 : Math.PI;
+                        } else if (this.patrolType === 'vertical') {
+                            this.y += this.patrolDir * this.speed * deltaTime;
+                            if (this.y <= this.patrolMinY) { 
+                                this.y = this.patrolMinY; 
+                                this.patrolDir = 1; 
+                            }
+                            if (this.y >= this.patrolMaxY) { 
+                                this.y = this.patrolMaxY; 
+                                this.patrolDir = -1; 
+                            }
+                            this.facing = this.patrolDir > 0 ? Math.PI/2 : -Math.PI/2;
+                        } else if (this.patrolType === 'diagonal') {
+                            this.x += this.patrolDirX * this.speed * deltaTime * 0.7;
+                            this.y += this.patrolDirY * this.speed * deltaTime * 0.7;
+                            if (this.x <= this.patrolMinX) { 
+                                this.x = this.patrolMinX; 
+                                this.patrolDirX = 1; 
+                            }
+                            if (this.x >= this.patrolMaxX) { 
+                                this.x = this.patrolMaxX; 
+                                this.patrolDirX = -1; 
+                            }
+                            if (this.y <= this.patrolMinY) { 
+                                this.y = this.patrolMinY; 
+                                this.patrolDirY = 1; 
+                            }
+                            if (this.y >= this.patrolMaxY) { 
+                                this.y = this.patrolMaxY; 
+                                this.patrolDirY = -1; 
+                            }
+                            this.facing = Math.atan2(this.patrolDirY, this.patrolDirX);
+                        } else if (this.patrolType === 'waypoints') {
+                            const wp = this.patrolWaypoints[this.patrolWaypointIndex];
+                            const dx = wp.x - this.x;
+                            const dy = wp.y - this.y;
+                            const dist = Math.sqrt(dx*dx + dy*dy);
+                            if (dist > 2) {
+                                this.x += (dx/dist) * this.speed * deltaTime;
+                                this.y += (dy/dist) * this.speed * deltaTime;
+                                this.facing = Math.atan2(dy, dx);
+                            } else {
+                                this.patrolWaypointIndex = (this.patrolWaypointIndex + 1) % this.patrolWaypoints.length;
+                            }
+                        }
+                        
+                        if (this.canSeeThief(player)) {
+                            this.state = 'chase';
+                            this.chaseTimer = 3;
+                        }
+                    } else if (this.state === 'chase') {
+                        const dx = (player.x + player.width/2) - (this.x + this.width/2);
+                        const dy = (player.y + player.height/2) - (this.y + this.height/2);
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist > 1) {
+                            this.x += (dx/dist) * this.speed * 1.3 * deltaTime;
+                            this.y += (dy/dist) * this.speed * 1.3 * deltaTime;
+                            this.facing = Math.atan2(dy, dx);
+                        }
+                        
+                        if (!this.canSeeThief(player)) {
+                            this.chaseTimer -= deltaTime;
+                            if (this.chaseTimer <= 0) {
+                                this.state = 'patrol';
+                            }
+                        } else {
+                            this.chaseTimer = 3;
+                        }
+                    }
+                }
+
+                canSeeThief(player) {
+                    if (isThiefInShadow(player)) return false;
+                    
+                    const guardCenterX = this.x + this.width/2;
+                    const guardCenterY = this.y + this.height/2;
+                    const thiefCenterX = player.x + player.width/2;
+                    const thiefCenterY = player.y + player.height/2;
+                    const dx = thiefCenterX - guardCenterX;
+                    const dy = thiefCenterY - guardCenterY;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (dist > this.visionDist) return false;
+                    
+                    const angleToThief = Math.atan2(dy, dx);
+                    let diff = Math.abs(angleToThief - this.facing);
+                    if (diff > Math.PI) diff = 2 * Math.PI - diff;
+                    
+                    return diff < this.visionAngle / 2;
+                }
+
+                drawVisionCone(ctx) {
+                    const guardCenterX = this.x + this.width/2;
+                    const guardCenterY = this.y + this.height/2;
+                    
+                    ctx.save();
+                    ctx.globalAlpha = 0.15;
+                    ctx.beginPath();
+                    ctx.moveTo(guardCenterX, guardCenterY);
+                    ctx.arc(
+                        guardCenterX,
+                        guardCenterY,
+                        this.visionDist,
+                        this.facing - this.visionAngle/2,
+                        this.facing + this.visionAngle/2
+                    );
+                    ctx.closePath();
+                    ctx.fillStyle = this.state === 'chase' ? '#ff0000' : '#ffff00';
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            function isThiefInShadow(player) {
+                return player.y > canvas.height / 2;
+            }
+
+            // Game variables
+            let player, vault, npcs = [];
+            let keys = {};
+            let mouse = { x: 0, y: 0 };
+            let lastTime = 0;
+            let particles = [];
+
+            function createParticles() {
+                particles = [];
+                for (let i = 0; i < 50; i++) {
+                    particles.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        vx: (Math.random() - 0.5) * 0.5,
+                        vy: (Math.random() - 0.5) * 0.5,
+                        radius: Math.random() * 1.5
+                    });
+                }
+            }
+
+            function drawParticles() {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                    
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+            function handleResize() {
+                canvas.width = 1200;
+                canvas.height = 800;
+                createParticles();
+            }
+
+            function showRoleSelect() {
+                ui.startScreen.style.display = 'none';
+                ui.roleSelectScreen.style.display = 'flex';
+            }
+
+            function showDifficultySelect() {
+                ui.roleSelectScreen.style.display = 'none';
+                ui.difficultySelectScreen.style.display = 'flex';
+            }
+
+            function startGameWithDifficulty(difficulty) {
+                gameState.difficulty = difficulty;
+                gameState.role = pendingRole;
+                ui.difficultySelectScreen.style.display = 'none';
+                
+                // Force background music to start
+                if (backgroundMusic) {
+                    backgroundMusic.volume = 0.3;
+                    backgroundMusic.currentTime = 0; // Start from beginning
+                    const playPromise = backgroundMusic.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            console.log("Background music started successfully!");
+                            if (ui.musicStatus) ui.musicStatus.textContent = "♪ ON";
+                            ui.musicStatus.style.color = "#0f0";
+                        }).catch(error => {
+                            console.log("Background music blocked:", error);
+                            if (ui.musicStatus) ui.musicStatus.textContent = "♪ BLOCKED";
+                            ui.musicStatus.style.color = "#f00";
+                        });
+                    }
+                }
+                
+                initGame();
+            }
+
+            function initGame() {
+                gameState.level = 1;
+                gameState.score = 0;
+                
+                if (gameState.role === 'guard') {
+                    player = new Player(canvas.width / 2 - 25, canvas.height - 100, 50, 50, images.guard);
+                } else if (gameState.role === 'thief') {
+                    player = new Player(canvas.width / 2 - 25, canvas.height - 80, 50, 50, images.thief);
+                }
+                
+                initLevel();
+            }
+
+            function initLevel() {
+                gameState.running = true;
+                gameState.paused = false;
+                gameState.timeLeft = 60 + (gameState.level - 1) * 5;
+                gameState.thievesEscaped = 0;
+                gameState.breakInTimer = 0;
+                
+                ui.level.textContent = gameState.level;
+                ui.score.textContent = gameState.score;
+                
+                if (gameState.role === 'guard') {
+                    player.x = canvas.width / 2 - 25;
+                    player.y = canvas.height - 100;
+                } else if (gameState.role === 'thief') {
+                    player.x = canvas.width / 2 - 25;
+                    player.y = canvas.height - 80;
+                }
+                
+                player.decoys = [];
+                player.applyUpgrades();
+                vault = new Entity(canvas.width / 2 - 50, -20, 100, 100, images.vault);
+                npcs = [];
+                
+                if (gameState.role === 'guard') {
+                    spawnNPCs();
+                } else if (gameState.role === 'thief') {
+                    spawnGuards();
+                }
+                
+                startTimer();
+                hideAllScreens();
+                
+                if (lastTime === 0) {
+                    lastTime = performance.now();
+                    requestAnimationFrame(gameLoop);
+                }
+            }
+
+            function hideAllScreens() {
+                ui.levelCompleteScreen.style.display = 'none';
+                ui.upgradeScreen.style.display = 'none';
+                ui.gameOverScreen.style.display = 'none';
+                ui.breakInPrompt.style.display = 'none';
+            }
+
+            function spawnNPCs() {
+                const numThieves = 3 + gameState.level * 2;
+                const numCats = 2 + gameState.level;
+
+                for (let i = 0; i < numThieves; i++) {
+                    setTimeout(() => {
+                        if (gameState.running) {
+                            npcs.push(createNPC('thief'));
+                        }
+                    }, Math.random() * 30000);
+                }
+
+                for (let i = 0; i < numCats; i++) {
+                    setTimeout(() => {
+                        if (gameState.running) {
+                            npcs.push(createNPC('cat'));
+                        }
+                    }, Math.random() * 40000);
+                }
+            }
+
+            function spawnGuards() {
+                npcs = [];
+                let numGuards = 3 + Math.floor(gameState.level / 2);
+                if (gameState.difficulty === 'easy') numGuards = 2;
+                if (gameState.difficulty === 'hard') numGuards = 5;
+                
+                for (let i = 0; i < numGuards; i++) {
+                    const patrolType = Math.floor(Math.random() * 4);
+                    let guard;
+                    
+                    if (patrolType === 0) {
+                        // Horizontal patrol
+                        const y = 150 + Math.random() * (canvas.height - 350);
+                        guard = new GuardNPC(100, y, 50, 50, images.guard);
+                        guard.patrolMinX = 100;
+                        guard.patrolMaxX = canvas.width - 150;
+                        guard.patrolDir = Math.random() < 0.5 ? 1 : -1;
+                        guard.patrolType = 'horizontal';
+                    } else if (patrolType === 1) {
+                        // Vertical patrol
+                        const x = 150 + Math.random() * (canvas.width - 350);
+                        guard = new GuardNPC(x, 100, 50, 50, images.guard);
+                        guard.patrolMinY = 100;
+                        guard.patrolMaxY = canvas.height - 200;
+                        guard.patrolDir = Math.random() < 0.5 ? 1 : -1;
+                        guard.patrolType = 'vertical';
+                    } else if (patrolType === 2) {
+                        // Diagonal patrol
+                        const x = 150 + Math.random() * (canvas.width - 350);
+                        const y = 150 + Math.random() * (canvas.height - 350);
+                        guard = new GuardNPC(x, y, 50, 50, images.guard);
+                        guard.patrolMinX = 100;
+                        guard.patrolMaxX = canvas.width - 150;
+                        guard.patrolMinY = 100;
+                        guard.patrolMaxY = canvas.height - 200;
+                        guard.patrolDirX = Math.random() < 0.5 ? 1 : -1;
+                        guard.patrolDirY = Math.random() < 0.5 ? 1 : -1;
+                        guard.patrolType = 'diagonal';
+                    } else {
+                        // Waypoint patrol
+                        const waypoints = [];
+                        for (let w = 0; w < 3 + Math.floor(Math.random() * 3); w++) {
+                            waypoints.push({
+                                x: 100 + Math.random() * (canvas.width - 200),
+                                y: 100 + Math.random() * (canvas.height - 250)
+                            });
+                        }
+                        guard = new GuardNPC(waypoints[0].x, waypoints[0].y, 50, 50, images.guard);
+                        guard.patrolWaypoints = waypoints;
+                        guard.patrolWaypointIndex = 1;
+                        guard.patrolType = 'waypoints';
+                    }
+                    
+                    npcs.push(guard);
+                }
+            }
+
+            function createNPC(type) {
+                const x = Math.random() * (canvas.width - 50);
+                const y = canvas.height + Math.random() * 100;
+                const image = type === 'thief' ? images.thief : images.cat;
+                return new NPC(x, y, 40, 40, image, type);
+            }
+
+            function startTimer() {
+                clearInterval(gameState.levelTimer);
+                gameState.levelTimer = setInterval(() => {
+                    if (gameState.running && !gameState.paused) {
+                        gameState.timeLeft--;
+                        ui.timer.textContent = gameState.timeLeft;
+                        if (gameState.timeLeft <= 0) {
+                            levelComplete();
+                        }
+                    }
+                }, 1000);
+            }
+
+            function levelComplete() {
+                gameState.running = false;
+                gameState.paused = true;
+                clearInterval(gameState.levelTimer);
+                ui.levelScore.textContent = gameState.score;
+                ui.levelCompleteScreen.style.display = 'flex';
+                playSound('upgrade');
+            }
+
+            function gameOver(reason) {
+                gameState.running = false;
+                gameState.paused = true;
+                clearInterval(gameState.levelTimer);
+                
+                // Pause background music
+                if (backgroundMusic) {
+                    backgroundMusic.pause();
+                }
+                
+                ui.gameOverMessage.textContent = reason;
+                ui.finalScore.textContent = gameState.score;
+                ui.gameOverScreen.style.display = 'flex';
+                updateLeaderboard(gameState.score);
+            }
+
+            function gameLoop(timestamp) {
+                if (!gameState.running) {
+                    lastTime = 0;
+                    return;
+                }
+                
+                const deltaTime = (timestamp - lastTime) / 1000;
+                lastTime = timestamp;
+                
+                if (!gameState.paused) {
+                    if (gameState.role === 'guard') {
+                        updateGuardMode(deltaTime);
+                    } else if (gameState.role === 'thief') {
+                        updateThiefMode(deltaTime);
+                    }
+                }
+                
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+
+            function updateGuardMode(deltaTime) {
+                player.update(deltaTime, keys, canvas);
+                
+                for (let i = npcs.length - 1; i >= 0; i--) {
+                    const npc = npcs[i];
+                    npc.update(deltaTime, player);
+
+                    // Check collision with vault
+                    if (npc.y < 50) {
+                        if (npc.type === 'thief') {
+                            gameState.thievesEscaped++;
+                            playSound('alarm');
+                            ui.alarmFlash.style.display = 'block';
+                            setTimeout(() => ui.alarmFlash.style.display = 'none', 1000);
+                            
+                            if (gameState.thievesEscaped >= gameState.maxEscapes) {
+                                gameOver("The vault has been breached!");
+                                return;
+                            }
+                        }
+                        npcs.splice(i, 1);
+                        continue;
+                    }
+
+                    // Check collision with flashlight
+                    if (player.flashlight.on && !npc.isStunned) {
+                        const playerCenterX = player.x + player.width / 2;
+                        const playerCenterY = player.y + player.height / 2;
+                        const angleToNpc = Math.atan2(npc.y - playerCenterY, npc.x - playerCenterX);
+                        const mouseAngle = Math.atan2(mouse.y - playerCenterY, mouse.x - playerCenterX);
+                        const angleDiff = Math.abs(angleToNpc - mouseAngle);
+                        const distanceToNpc = Math.hypot(npc.x - playerCenterX, npc.y - playerCenterY);
+
+                        if (distanceToNpc < player.flashlight.coneRadius && 
+                            (angleDiff < player.flashlight.coneAngle / 2 || 
+                             angleDiff > Math.PI * 2 - player.flashlight.coneAngle / 2)) {
+                            npc.stun();
+                        }
+                    }
+                    
+                    // Check collision with player
+                    const dx = player.x - npc.x;
+                    const dy = player.y - npc.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 40) {
+                        if (npc.isStunned && npc.type === 'thief') {
+                            gameState.score += 100 * gameState.level;
+                            ui.score.textContent = gameState.score;
+                            npcs.splice(i, 1);
+                            playSound('catch');
+                        } else if (npc.type === 'cat' && !npc.isStunned) {
+                            player.speed /= 2;
+                            playSound('cat');
+                            setTimeout(() => player.speed = player.baseSpeed * (1 + player.upgrades.speed * 0.15), 1000);
+                            npcs.splice(i, 1);
+                        }
+                    }
+                }
+            }
+
+            function updateThiefMode(deltaTime) {
+                player.update(deltaTime, keys, canvas);
+                
+                for (let i = 0; i < npcs.length; i++) {
+                    const guard = npcs[i];
+                    if (guard instanceof GuardNPC) {
+                        guard.update(deltaTime, player);
+                        
+                        const dx = (player.x + player.width/2) - (guard.x + guard.width/2);
+                        const dy = (player.y + player.height/2) - (guard.y + guard.height/2);
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        
+                        if (dist < (player.width/2 + guard.width/2) * 1.2) {
+                            thiefLose();
+                            return;
+                        }
+                    }
+                }
+                
+                // Vault break-in logic
+                const dx = (player.x + player.width / 2) - (vault.x + vault.width / 2);
+                const dy = (player.y + player.height / 2) - (vault.y + vault.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 80) {
+                    ui.breakInPrompt.style.display = 'block';
+                    if (keys['e'] || keys['E']) {
+                        gameState.breakInTimer += deltaTime;
+                        if (gameState.breakInTimer >= 2) {
+                            thiefWin();
+                            return;
+                        }
+                    } else {
+                        gameState.breakInTimer = 0;
+                    }
+                } else {
+                    ui.breakInPrompt.style.display = 'none';
+                    gameState.breakInTimer = 0;
+                }
+            }
+
+            function thiefWin() {
+                gameState.running = false;
+                gameState.paused = true;
+                clearInterval(gameState.levelTimer);
+                
+                // Pause background music
+                if (backgroundMusic) {
+                    backgroundMusic.pause();
+                }
+                
+                ui.breakInPrompt.style.display = 'none';
+                ui.gameOverMessage.textContent = "You broke into the vault!";
+                ui.finalScore.textContent = gameState.score + 1000;
+                ui.gameOverScreen.style.display = 'flex';
+                updateLeaderboard(gameState.score + 1000);
+            }
+
+            function thiefLose() {
+                gameState.running = false;
+                gameState.paused = true;
+                clearInterval(gameState.levelTimer);
+                
+                // Pause background music
+                if (backgroundMusic) {
+                    backgroundMusic.pause();
+                }
+                
+                ui.breakInPrompt.style.display = 'none';
+                ui.gameOverMessage.textContent = "You were caught by a guard!";
+                ui.finalScore.textContent = gameState.score;
+                ui.gameOverScreen.style.display = 'flex';
+                updateLeaderboard(gameState.score);
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                drawParticles();
+
+                if (!gameState.running) {
+                    return;
+                }
+
+                // Draw vault
+                vault.draw(ctx);
+                
+                // Draw decoys
+                player.decoys.forEach(decoy => decoy.draw(ctx));
+
+                // Draw NPCs
+                npcs.forEach(npc => npc.draw(ctx));
+
+                // Draw guards' vision cones in thief mode
+                if (gameState.role === 'thief') {
+                    npcs.forEach(npc => {
+                        if (npc instanceof GuardNPC) {
+                            npc.drawVisionCone(ctx);
+                        }
+                    });
+                }
+
+                // Draw player
+                player.draw(ctx);
+
+                // Draw flashlight and darkness
+                ctx.save();
+                player.drawFlashlight(ctx, mouse);
+
+                // Darkness effect
+                ctx.globalCompositeOperation = 'multiply';
+                const gradient = ctx.createRadialGradient(
+                    player.x + player.width/2, player.y + player.height/2, 150,
+                    player.x + player.width/2, player.y + player.height/2, canvas.width
+                );
+                gradient.addColorStop(0, 'rgba(50, 50, 60, 0.3)');
+                gradient.addColorStop(1, 'rgba(0, 0, 10, 0.9)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
+
+                // Draw stealth overlay if thief is hidden
+                if (gameState.role === 'thief' && isThiefInShadow(player)) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.25;
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.restore();
+                }
+            }
+
+            function updateLeaderboard(score) {
+                highScores.push(score);
+                highScores.sort((a, b) => b - a);
+                highScores.splice(5);
+                displayLeaderboard();
+            }
+
+            function displayLeaderboard() {
+                ui.highScoresList.innerHTML = '';
+                if (highScores.length === 0) {
+                    ui.highScoresList.innerHTML = '<li>No scores yet. Be the first!</li>';
+                } else {
+                    highScores.forEach(score => {
+                        const li = document.createElement('li');
+                        li.textContent = score;
+                        ui.highScoresList.appendChild(li);
+                    });
+                }
+            }
+
+            // Event listeners
             window.addEventListener('resize', handleResize);
-            
-            // Keyboard events
             window.addEventListener('keydown', e => { 
-                keys[e.key.toLowerCase()] = true;
-                if (player && (e.key.toLowerCase() === 'e')) {
+                keys[e.key] = true; 
+                if (player && (e.key === 'e' || e.key === 'E')) {
                     player.deployDecoy();
                 }
+                // Resume audio context on first keypress
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                // Try to start background music on any key press
+                if (backgroundMusic && backgroundMusic.paused) {
+                    backgroundMusic.play().catch(e => console.log("Music start failed:", e));
+                }
             });
-            window.addEventListener('keyup', e => { 
-                keys[e.key.toLowerCase()] = false; 
-            });
+            window.addEventListener('keyup', e => { keys[e.key] = false; });
 
-            // Mouse events
             canvas.addEventListener('mousedown', e => { 
                 if (player && e.button === 0) {
                     player.flashlight.on = true;
+                    // Resume audio context on first click
+                    if (audioCtx.state === 'suspended') {
+                        audioCtx.resume();
+                    }
+                    // Try to start background music on mouse click
+                    if (backgroundMusic && backgroundMusic.paused) {
+                        backgroundMusic.play().catch(e => console.log("Music start failed:", e));
+                    }
                 }
-                e.preventDefault();
             });
-            
             canvas.addEventListener('mouseup', e => { 
-                if (player && e.button === 0) {
-                    player.flashlight.on = false; 
-                }
-                e.preventDefault();
+                if (player && e.button === 0) player.flashlight.on = false; 
             });
-            
             canvas.addEventListener('mousemove', e => {
                 const rect = canvas.getBoundingClientRect();
-                mouse.x = e.clientX - rect.left;
-                mouse.y = e.clientY - rect.top;
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                mouse.x = (e.clientX - rect.left) * scaleX;
+                mouse.y = (e.clientY - rect.top) * scaleY;
             });
 
-            // Touch events for mobile
-            setupMobileControls();
-            
-            // UI button events
-            setupUIEvents();
-            
-            console.log("Event listeners set up");
-        }
-
-        function setupMobileControls() {
-            if (!isTouch) return;
-            
-            const mobileControls = document.getElementById('mobile-controls');
-            if (mobileControls) mobileControls.style.display = 'block';
-            
-            const joystickContainer = document.getElementById('joystick-container');
-            const joystickStick = document.getElementById('joystick-stick');
-            
-            if (joystickContainer && joystickStick) {
-                joystickContainer.addEventListener('touchstart', handleJoystickStart);
-                joystickContainer.addEventListener('touchmove', handleJoystickMove);
-                joystickContainer.addEventListener('touchend', handleJoystickEnd);
-            }
-            
-            // Mobile buttons
-            const flashlightBtn = document.getElementById('flashlight-btn');
-            const decoyBtn = document.getElementById('decoy-btn');
-            const actionBtn = document.getElementById('action-btn');
-            
-            if (flashlightBtn) {
-                flashlightBtn.addEventListener('touchstart', e => { 
-                    mobileFlashlight = true; 
-                    e.preventDefault(); 
-                });
-                flashlightBtn.addEventListener('touchend', e => { 
-                    mobileFlashlight = false; 
-                    e.preventDefault(); 
-                });
-            }
-            
-            if (decoyBtn) {
-                decoyBtn.addEventListener('touchstart', e => { 
-                    if (player) player.deployDecoy(); 
-                    e.preventDefault(); 
-                });
-            }
-            
-            if (actionBtn) {
-                actionBtn.addEventListener('touchstart', e => { 
-                    mobileAction = true; 
-                    e.preventDefault(); 
-                });
-                actionBtn.addEventListener('touchend', e => { 
-                    mobileAction = false; 
-                    e.preventDefault(); 
-                });
-            }
-            
-            // Canvas touch events
-            canvas.addEventListener('touchstart', e => {
-                if (player && e.touches.length === 1) {
-                    const rect = canvas.getBoundingClientRect();
-                    const touch = e.touches[0];
-                    mouse.x = touch.clientX - rect.left;
-                    mouse.y = touch.clientY - rect.top;
-                    player.flashlight.on = true;
+            // UI Event listeners
+            ui.startButton.addEventListener('click', () => {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
                 }
-                e.preventDefault();
-            });
-            
-            canvas.addEventListener('touchmove', e => {
-                if (e.touches.length === 1) {
-                    const rect = canvas.getBoundingClientRect();
-                    const touch = e.touches[0];
-                    mouse.x = touch.clientX - rect.left;
-                    mouse.y = touch.clientY - rect.top;
+                // Try to start background music early
+                if (backgroundMusic) {
+                    backgroundMusic.volume = 0.3;
+                    backgroundMusic.play().catch(e => console.log("Audio blocked on start:", e));
                 }
-                e.preventDefault();
+                showRoleSelect();
             });
             
-            canvas.addEventListener('touchend', e => {
-                if (player) player.flashlight.on = false;
-                e.preventDefault();
+            ui.playGuardButton.addEventListener('click', () => { 
+                pendingRole = 'guard';
+                // Try to start music on user interaction
+                if (backgroundMusic) {
+                    backgroundMusic.volume = 0.3;
+                    backgroundMusic.play().catch(e => console.log("Audio blocked on role select:", e));
+                }
+                showDifficultySelect(); 
             });
-        }
+            
+            ui.playThiefButton.addEventListener('click', () => { 
+                pendingRole = 'thief';
+                // Try to start music on user interaction
+                if (backgroundMusic) {
+                    backgroundMusic.volume = 0.3;
+                    backgroundMusic.play().catch(e => console.log("Audio blocked on role select:", e));
+                }
+                showDifficultySelect(); 
+            });
 
-        function handleJoystickStart(e) {
-            joystickActive = true;
-            updateJoystickPosition(e.touches[0]);
-            e.preventDefault();
-        }
-
-        function handleJoystickMove(e) {
-            if (!joystickActive) return;
-            updateJoystickPosition(e.touches[0]);
-            e.preventDefault();
-        }
-
-        function handleJoystickEnd(e) {
-            joystickActive = false;
-            joystickPos = { x: 0, y: 0 };
-            resetJoystickStick();
-            e.preventDefault();
-        }
-
-        function updateJoystickPosition(touch) {
-            const container = document.getElementById('joystick-container');
-            const stick = document.getElementById('joystick-stick');
-            const rect = container.getBoundingClientRect();
-            
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const maxRadius = centerX - 20;
-            
-            let deltaX = touch.clientX - rect.left - centerX;
-            let deltaY = touch.clientY - rect.top - centerY;
-            
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            
-            if (distance > maxRadius) {
-                deltaX = deltaX * maxRadius / distance;
-                deltaY = deltaY * maxRadius / distance;
-            }
-            
-            joystickPos.x = deltaX / maxRadius;
-            joystickPos.y = deltaY / maxRadius;
-            
-            stick.style.left = (centerX + deltaX - 20) + 'px';
-            stick.style.top = (centerY + deltaY - 20) + 'px';
-        }
-
-        function resetJoystickStick() {
-            const stick = document.getElementById('joystick-stick');
-            if (stick) {
-                stick.style.left = '40px';
-                stick.style.top = '40px';
-            }
-        }
-
-        function setupUIEvents() {
-            // Start button
-            const startBtn = document.getElementById('start-button');
-            if (startBtn) {
-                startBtn.addEventListener('click', () => {
-                    document.getElementById('start-screen').style.display = 'none';
-                    document.getElementById('role-select-screen').style.display = 'flex';
-                });
-            }
-            
-            // Role selection
-            const guardBtn = document.getElementById('play-guard');
-            const thiefBtn = document.getElementById('play-thief');
-            
-            if (guardBtn) {
-                guardBtn.addEventListener('click', () => {
-                    pendingRole = 'guard';
-                    document.getElementById('role-select-screen').style.display = 'none';
-                    document.getElementById('difficulty-select-screen').style.display = 'flex';
-                });
-            }
-            
-            if (thiefBtn) {
-                thiefBtn.addEventListener('click', () => {
-                    pendingRole = 'thief';
-                    document.getElementById('role-select-screen').style.display = 'none';
-                    document.getElementById('difficulty-select-screen').style.display = 'flex';
-                });
-            }
-            
-            // Difficulty buttons
-            document.querySelectorAll('[data-difficulty]').forEach(btn => {
+            document.querySelectorAll('#difficulty-select-screen .button').forEach(btn => {
                 btn.addEventListener('click', () => {
+                    // Ensure music starts on difficulty selection
+                    if (backgroundMusic) {
+                        backgroundMusic.volume = 0.3;
+                        backgroundMusic.play().catch(e => console.log("Audio blocked on difficulty:", e));
+                    }
                     startGameWithDifficulty(btn.dataset.difficulty);
                 });
             });
-            
-            // Game control buttons
-            const restartBtn = document.getElementById('restart-button');
-            if (restartBtn) {
-                restartBtn.addEventListener('click', () => {
-                    document.getElementById('game-over-screen').style.display = 'none';
-                    initGame();
-                });
-            }
-            
-            const nextLevelBtn = document.getElementById('next-level-button');
-            if (nextLevelBtn) {
-                nextLevelBtn.addEventListener('click', () => {
-                    gameState.level++;
-                    initLevel();
-                });
-            }
-            
-            const upgradeBtn = document.getElementById('upgrade-button');
-            if (upgradeBtn) {
-                upgradeBtn.addEventListener('click', () => {
-                    document.getElementById('level-complete-screen').style.display = 'none';
-                    document.getElementById('total-score-display').textContent = gameState.score;
-                    document.getElementById('upgrade-screen').style.display = 'flex';
-                });
-            }
-            
-            const continueBtn = document.getElementById('continue-game-button');
-            if (continueBtn) {
-                continueBtn.addEventListener('click', () => {
-                    gameState.level++;
-                    initLevel();
-                });
-            }
-            
-            // Mute button
-            const muteBtn = document.getElementById('mute-button');
-            if (muteBtn) {
-                muteBtn.addEventListener('click', () => {
-                    gameState.isMuted = !gameState.isMuted;
-                    muteBtn.textContent = gameState.isMuted ? '🔇' : '🔊';
-                });
-            }
-            
-            // Upgrade cards
+
+            ui.restartButton.addEventListener('click', () => {
+                ui.gameOverScreen.style.display = 'none';
+                
+                // Restart background music
+                if (backgroundMusic) {
+                    backgroundMusic.currentTime = 0;
+                    backgroundMusic.play().catch(e => console.log("Audio restart failed:", e));
+                }
+                
+                initGame();
+            });
+
+            ui.nextLevelButton.addEventListener('click', () => {
+                gameState.level++;
+                initLevel();
+            });
+
+            ui.upgradeButton.addEventListener('click', () => {
+                ui.levelCompleteScreen.style.display = 'none';
+                ui.totalScoreDisplay.textContent = gameState.score;
+                ui.upgradeScreen.style.display = 'flex';
+            });
+
+            ui.continueGameButton.addEventListener('click', () => {
+                gameState.level++;
+                initLevel();
+            });
+
+            ui.muteButton.addEventListener('click', () => {
+                gameState.isMuted = !gameState.isMuted;
+                ui.muteButton.textContent = gameState.isMuted ? '🔇' : '🔊';
+                
+                // Mute/unmute background music
+                if (backgroundMusic) {
+                    backgroundMusic.muted = gameState.isMuted;
+                }
+            });
+
             document.querySelectorAll('.upgrade-card').forEach(card => {
                 card.addEventListener('click', () => {
                     const upgradeType = card.dataset.upgrade;
@@ -818,814 +1426,40 @@
                     };
                     const cost = costs[upgradeType];
                     
-                    if (gameState.score >= cost && player) {
+                    if (gameState.score >= cost) {
                         gameState.score -= cost;
                         player.upgrades[upgradeType]++;
-                        document.getElementById('total-score-display').textContent = gameState.score;
-                        document.getElementById('score').textContent = gameState.score;
+                        ui.totalScoreDisplay.textContent = gameState.score;
+                        ui.score.textContent = gameState.score;
                         card.style.borderColor = '#00ff00';
                         card.style.pointerEvents = 'none';
                         playSound('upgrade');
-                        player.applyUpgrades();
                     } else {
                         card.style.animation = 'shake 0.5s';
                         setTimeout(() => card.style.animation = '', 500);
                     }
                 });
             });
-        }
 
-        function handleResize() {
-            const container = document.getElementById('game-container');
-            const rect = container.getBoundingClientRect();
-            
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-            
+            // Initialize
+            handleResize();
             createParticles();
-        }
-
-        function createParticles() {
-            particles = [];
-            const width = canvas.width || window.innerWidth;
-            const height = canvas.height || window.innerHeight;
-            
-            for (let i = 0; i < 30; i++) {
-                particles.push({
-                    x: Math.random() * width,
-                    y: Math.random() * height,
-                    vx: (Math.random() - 0.5) * 0.5,
-                    vy: (Math.random() - 0.5) * 0.5,
-                    radius: Math.random() * 1.5 + 0.5
-                });
-            }
-        }
-
-        function drawParticles() {
-            if (!ctx) return;
-            
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            const width = canvas.width;
-            const height = canvas.height;
-            
-            particles.forEach(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-                
-                if (p.x < 0 || p.x > width) p.vx *= -1;
-                if (p.y < 0 || p.y > height) p.vy *= -1;
-                
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fill();
-            });
-        }
-
-        function startParticleLoop() {
-            function particleLoop() {
-                if (!gameState.running && ctx) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    drawParticles();
-                }
-                requestAnimationFrame(particleLoop);
-            }
-            particleLoop();
-        }
-
-        function startGameWithDifficulty(difficulty) {
-            gameState.difficulty = difficulty;
-            gameState.role = pendingRole;
-            document.getElementById('difficulty-select-screen').style.display = 'none';
-            initGame();
-        }
-
-        function getEntityScale() {
-            // Scale entities for mobile screens
-            let base = Math.min(canvas.width, canvas.height);
-            if (base < 700) return base / 800; // scale down for small screens
-            return 1;
-        }
-        function initGame() {
-            gameState.level = 1;
-            gameState.score = 0;
-            let scale = getEntityScale();
-            let pW = 50 * scale, pH = 50 * scale;
-            if (gameState.role === 'guard') {
-                player = new Player(canvas.width / 2 - pW/2, canvas.height - pH*2, pW, pH, images.guard);
-            } else if (gameState.role === 'thief') {
-                player = new Player(canvas.width / 2 - pW/2, canvas.height - pH*1.6, pW, pH, images.thief);
-            }
-            initLevel();
-        }
-
-        function initLevel() {
-            gameState.running = true;
-            gameState.paused = false;
-            gameState.timeLeft = 60 + (gameState.level - 1) * 5;
-            gameState.thievesEscaped = 0;
-            gameState.breakInTimer = 0;
-            document.getElementById('level').textContent = gameState.level;
-            document.getElementById('score').textContent = gameState.score;
-            let scale = getEntityScale();
-            let pW = 50 * scale, pH = 50 * scale;
-            if (gameState.role === 'guard') {
-                player.x = canvas.width / 2 - pW/2;
-                player.y = canvas.height - pH*2;
-                player.width = pW; player.height = pH;
-            } else if (gameState.role === 'thief') {
-                player.x = canvas.width / 2 - pW/2;
-                player.y = canvas.height - pH*1.6;
-                player.width = pW; player.height = pH;
-            }
-            player.decoys = [];
-            player.applyUpgrades();
-            // Vault scaling and position
-            let vW = 100 * scale, vH = 100 * scale;
-            vault = new Entity(canvas.width / 2 - vW/2, 0, vW, vH, images.vault);
-            npcs = [];
-            if (gameState.role === 'guard') {
-                spawnNPCs(scale);
-            } else if (gameState.role === 'thief') {
-                spawnGuards(scale);
-            }
-            startTimer();
-            hideAllScreens();
-            if (lastTime === 0) {
-                lastTime = performance.now();
-                requestAnimationFrame(gameLoop);
-            }
-        }
-
-        function hideAllScreens() {
-            const screens = ['level-complete-screen', 'upgrade-screen', 'game-over-screen'];
-            screens.forEach(id => {
-                const screen = document.getElementById(id);
-                if (screen) screen.style.display = 'none';
-            });
-            
-            const prompt = document.getElementById('breakin-prompt');
-            if (prompt) prompt.style.display = 'none';
-        }
-
-        function spawnNPCs(scale=1) {
-            const numThieves = 3 + gameState.level * 2;
-            const numCats = 2 + gameState.level;
-            for (let i = 0; i < numThieves; i++) {
-                setTimeout(() => {
-                    if (gameState.running) {
-                        npcs.push(createNPC('thief', scale));
-                    }
-                }, Math.random() * 30000);
-            }
-            for (let i = 0; i < numCats; i++) {
-                setTimeout(() => {
-                    if (gameState.running) {
-                        npcs.push(createNPC('cat', scale));
-                    }
-                }, Math.random() * 40000);
-            }
-        }
-
-        function spawnGuards(scale=1) {
-            npcs = [];
-            let numGuards = 3 + Math.floor(gameState.level / 2);
-            if (gameState.difficulty === 'easy') numGuards = 2;
-            if (gameState.difficulty === 'hard') numGuards = 5;
-            let gW = 50 * scale, gH = 50 * scale;
-            for (let i = 0; i < numGuards; i++) {
-                const patrolType = Math.floor(Math.random() * 4);
-                let guard;
-                if (patrolType === 0) {
-                    // Horizontal patrol
-                    const y = 150 * scale + Math.random() * (canvas.height - 350 * scale);
-                    guard = new GuardNPC(100 * scale, y, gW, gH, images.guard);
-                    guard.patrolMinX = 100 * scale;
-                    guard.patrolMaxX = canvas.width - 150 * scale;
-                    guard.patrolDir = Math.random() < 0.5 ? 1 : -1;
-                    guard.patrolType = 'horizontal';
-                } else if (patrolType === 1) {
-                    // Vertical patrol
-                    const x = 150 * scale + Math.random() * (canvas.width - 350 * scale);
-                    guard = new GuardNPC(x, 100 * scale, gW, gH, images.guard);
-                    guard.patrolMinY = 100 * scale;
-                    guard.patrolMaxY = canvas.height - 200 * scale;
-                    guard.patrolDir = Math.random() < 0.5 ? 1 : -1;
-                    guard.patrolType = 'vertical';
-                } else if (patrolType === 2) {
-                    // Diagonal patrol
-                    const x = 150 * scale + Math.random() * (canvas.width - 350 * scale);
-                    const y = 150 * scale + Math.random() * (canvas.height - 350 * scale);
-                    guard = new GuardNPC(x, y, gW, gH, images.guard);
-                    guard.patrolMinX = 100 * scale;
-                    guard.patrolMaxX = canvas.width - 150 * scale;
-                    guard.patrolMinY = 100 * scale;
-                    guard.patrolMaxY = canvas.height - 200 * scale;
-                    guard.patrolDirX = Math.random() < 0.5 ? 1 : -1;
-                    guard.patrolDirY = Math.random() < 0.5 ? 1 : -1;
-                    guard.patrolType = 'diagonal';
-                } else {
-                    // Waypoint patrol
-                    const waypoints = [];
-                    for (let w = 0; w < 3 + Math.floor(Math.random() * 3); w++) {
-                        waypoints.push({
-                            x: 100 * scale + Math.random() * (canvas.width - 200 * scale),
-                            y: 100 * scale + Math.random() * (canvas.height - 250 * scale)
-                        });
-                    }
-                    guard = new GuardNPC(waypoints[0].x, waypoints[0].y, gW, gH, images.guard);
-                    guard.patrolWaypoints = waypoints;
-                    guard.patrolWaypointIndex = 1;
-                    guard.patrolType = 'waypoints';
-                }
-                npcs.push(guard);
-            }
-        }
-
-        function createNPC(type, scale=1) {
-            const w = 40 * scale, h = 40 * scale;
-            const x = Math.random() * (canvas.width - w);
-            const y = canvas.height + Math.random() * 100 * scale;
-            const image = type === 'thief' ? images.thief : images.cat;
-            return new NPC(x, y, w, h, image, type);
-        }
-
-        function startTimer() {
-            clearInterval(gameState.levelTimer);
-            gameState.levelTimer = setInterval(() => {
-                if (gameState.running && !gameState.paused) {
-                    gameState.timeLeft--;
-                    document.getElementById('timer').textContent = gameState.timeLeft;
-                    if (gameState.timeLeft <= 0) {
-                        levelComplete();
-                    }
-                }
-            }, 1000);
-        }
-
-        function levelComplete() {
-            gameState.running = false;
-            gameState.paused = true;
-            clearInterval(gameState.levelTimer);
-            
-            document.getElementById('level-score').textContent = gameState.score;
-            document.getElementById('level-complete-screen').style.display = 'flex';
-            playSound('upgrade');
-        }
-
-        function gameOver(reason) {
-            gameState.running = false;
-            gameState.paused = true;
-            clearInterval(gameState.levelTimer);
-            
-            document.getElementById('game-over-message').textContent = reason;
-            document.getElementById('final-score').textContent = gameState.score;
-            document.getElementById('game-over-screen').style.display = 'flex';
-            updateLeaderboard(gameState.score);
-        }
-
-        function updateLeaderboard(score) {
-            highScores.push(score);
-            highScores.sort((a, b) => b - a);
-            highScores.splice(5);
             displayLeaderboard();
-        }
-
-        function displayLeaderboard() {
-            const list = document.getElementById('high-scores-list');
-            if (list) {
-                list.innerHTML = '';
-                if (highScores.length === 0) {
-                    list.innerHTML = '<li>No scores yet. Be the first!</li>';
-                } else {
-                    highScores.forEach(score => {
-                        const li = document.createElement('li');
-                        li.textContent = score;
-                        list.appendChild(li);
-                    });
-                }
-            }
-        }
-
-        function playSound(type) {
-            if (gameState.isMuted) return;
             
-            // Simple beep sounds using Web Audio API
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                
-                switch (type) {
-                    case 'catch':
-                        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-                        break;
-                    case 'alarm':
-                        oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
-                        break;
-                    case 'cat':
-                        oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime);
-                        break;
-                    case 'upgrade':
-                        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
-                        break;
-                    default:
-                        oscillator.frequency.setValueAtTime(220, audioCtx.currentTime);
-                }
-                
-                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
-                
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.2);
-            } catch (e) {
-                console.log("Audio not supported");
-            }
-        }
-
-        function gameLoop(timestamp) {
-            if (!gameState.running) {
-                lastTime = 0;
-                return;
-            }
-            
-            const deltaTime = Math.min((timestamp - lastTime) / 1000, 0.02); // Cap at 50fps
-            lastTime = timestamp;
-            
-            if (!gameState.paused) {
-                update(deltaTime);
-            }
-            
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-
-        function update(deltaTime) {
-            if (!player) return;
-            
-            player.update(deltaTime);
-            
-            if (gameState.role === 'guard') {
-                updateGuardMode(deltaTime);
-            } else if (gameState.role === 'thief') {
-                updateThiefMode(deltaTime);
-            }
-        }
-
-        function updateGuardMode(deltaTime) {
-            for (let i = npcs.length - 1; i >= 0; i--) {
-                const npc = npcs[i];
-                npc.update(deltaTime, player);
-
-                // Check if thief reached vault
-                if (npc.y < 50 && npc.type === 'thief') {
-                    gameState.thievesEscaped++;
-                    playSound('alarm');
-                    
-                    const flash = document.getElementById('alarm-flash');
-                    if (flash) {
-                        flash.style.display = 'block';
-                        setTimeout(() => flash.style.display = 'none', 1000);
+            // Start particle animation
+            function startParticleLoop() {
+                function particleLoop() {
+                    if (!gameState.running) {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        drawParticles();
                     }
-                    
-                    if (gameState.thievesEscaped >= gameState.maxEscapes) {
-                        gameOver("The vault has been breached!");
-                        return;
-                    }
-                    npcs.splice(i, 1);
-                    continue;
+                    requestAnimationFrame(particleLoop);
                 }
-
-                // Check flashlight collision
-                if (player.flashlight.on && !npc.isStunned && checkFlashlightHit(npc)) {
-                    npc.stun();
-                }
-                
-                // Check player collision
-                if (checkCollision(player, npc)) {
-                    if (npc.isStunned && npc.type === 'thief') {
-                        gameState.score += 100 * gameState.level;
-                        document.getElementById('score').textContent = gameState.score;
-                        npcs.splice(i, 1);
-                        playSound('catch');
-                    } else if (npc.type === 'cat' && !npc.isStunned) {
-                        player.speed *= 0.5;
-                        playSound('cat');
-                        setTimeout(() => {
-                            if (player) player.applyUpgrades();
-                        }, 2000);
-                        npcs.splice(i, 1);
-                    }
-                }
-            }
-        }
-
-        function updateThiefMode(deltaTime) {
-            for (let i = 0; i < npcs.length; i++) {
-                const guard = npcs[i];
-                if (guard.update) {
-                    guard.update(deltaTime, player);
-                    
-                    if (checkCollision(player, guard)) {
-                        gameOver("You were caught by a guard!");
-                        return;
-                    }
-                }
+                particleLoop();
             }
             
-            // Vault break-in logic
-            if (vault && checkCollision(player, vault, 80)) {
-                const prompt = document.getElementById('breakin-prompt');
-                if (prompt) prompt.style.display = 'block';
-                
-                if (keys['e'] || (isTouch && mobileAction)) {
-                    gameState.breakInTimer += deltaTime;
-                    if (gameState.breakInTimer >= 2) {
-                        gameState.score += 1000;
-                        gameOver("You broke into the vault!");
-                        return;
-                    }
-                } else {
-                    gameState.breakInTimer = 0;
-                }
-            } else {
-                const prompt = document.getElementById('breakin-prompt');
-                if (prompt) prompt.style.display = 'none';
-                gameState.breakInTimer = 0;
-            }
-        }
-
-        function checkFlashlightHit(npc) {
-            if (!player || !player.flashlight.on || player.flashlight.energy <= 0) return false;
-            
-            const playerCenterX = player.x + player.width / 2;
-            const playerCenterY = player.y + player.height / 2;
-            const npcCenterX = npc.x + npc.width / 2;
-            const npcCenterY = npc.y + npc.height / 2;
-            
-            const angleToNpc = Math.atan2(npcCenterY - playerCenterY, npcCenterX - playerCenterX);
-            const mouseAngle = Math.atan2(mouse.y - playerCenterY, mouse.x - playerCenterX);
-            
-            let angleDiff = Math.abs(angleToNpc - mouseAngle);
-            if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
-            
-            const distance = Math.hypot(npcCenterX - playerCenterX, npcCenterY - playerCenterY);
-            
-            return distance < player.flashlight.coneRadius && angleDiff < player.flashlight.coneAngle / 2;
-        }
-
-        function checkCollision(obj1, obj2, threshold = 40) {
-            const dx = (obj1.x + obj1.width / 2) - (obj2.x + obj2.width / 2);
-            const dy = (obj1.y + obj1.height / 2) - (obj2.y + obj2.height / 2);
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            return distance < threshold;
-        }
-
-        function draw() {
-            if (!ctx) return;
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            drawParticles();
-
-            if (!gameState.running) return;
-
-            // Draw vault
-            if (vault) vault.draw(ctx);
-            
-            // Draw decoys
-            if (player && player.decoys) {
-                player.decoys.forEach(decoy => decoy.draw(ctx));
-            }
-
-            // Draw NPCs
-            npcs.forEach(npc => npc.draw(ctx));
-
-            // Draw guards' vision cones in thief mode
-            if (gameState.role === 'thief') {
-                npcs.forEach(npc => {
-                    if (npc.drawVisionCone) {
-                        npc.drawVisionCone(ctx);
-                    }
-                });
-            }
-
-            // Draw player
-            if (player) player.draw(ctx);
-
-            // Draw flashlight effect
-            if (player && player.drawFlashlight) {
-                player.drawFlashlight(ctx, mouse);
-            }
-
-            // Draw darkness effect
-            drawDarkness();
-        }
-
-        function drawDarkness() {
-            if (!player) return;
-            
-            ctx.save();
-            ctx.globalCompositeOperation = 'multiply';
-            
-            const gradient = ctx.createRadialGradient(
-                player.x + player.width/2, player.y + player.height/2, 100,
-                player.x + player.width/2, player.y + player.height/2, canvas.width * 0.8
-            );
-            gradient.addColorStop(0, 'rgba(80, 80, 90, 0.3)');
-            gradient.addColorStop(1, 'rgba(0, 0, 20, 0.9)');
-            
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.restore();
-        }
-
-        // Entity Classes
-        class Entity {
-            constructor(x, y, width, height, image) {
-                this.x = x;
-                this.y = y;
-                this.width = width;
-                this.height = height;
-                this.image = image;
-                this.scale = 1;
-                this.isPulsing = false;
-            }
-
-            draw(ctx) {
-                if (!this.image) return;
-                
-                let scaleEffect = this.scale;
-                if (this.isPulsing) {
-                    scaleEffect *= 1 + Math.sin(Date.now() / 200) * 0.1;
-                }
-                
-                ctx.save();
-                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-                ctx.scale(scaleEffect, scaleEffect);
-                ctx.drawImage(this.image, -this.width / 2, -this.height / 2, this.width, this.height);
-                ctx.restore();
-            }
-        }
-
-        class Player extends Entity {
-            constructor(x, y, width, height, image) {
-                super(x, y, width, height, image);
-                this.baseSpeed = 200;
-                this.speed = this.baseSpeed;
-                this.flashlight = {
-                    on: false,
-                    maxEnergy: 100,
-                    energy: 100,
-                    drainRate: 20,
-                    rechargeRate: 12,
-                    coneAngle: Math.PI / 3,
-                    coneRadius: 200,
-                };
-                this.upgrades = {
-                    speed: 0,
-                    flashlight_recharge: 0,
-                    flashlight_capacity: 0,
-                    decoy: 0,
-                };
-                this.decoys = [];
-                this.maxDecoys = 1;
-            }
-
-            update(deltaTime) {
-                // Movement
-                let dx = 0, dy = 0;
-                
-                if (isTouch && joystickActive) {
-                    dx = joystickPos.x;
-                    dy = joystickPos.y;
-                } else {
-                    if (keys['w'] || keys['arrowup']) dy -= 1;
-                    if (keys['s'] || keys['arrowdown']) dy += 1;
-                    if (keys['a'] || keys['arrowleft']) dx -= 1;
-                    if (keys['d'] || keys['arrowright']) dx += 1;
-                }
-
-                const magnitude = Math.sqrt(dx * dx + dy * dy);
-                if (magnitude > 0) {
-                    dx /= magnitude;
-                    dy /= magnitude;
-                }
-
-                this.x += dx * this.speed * deltaTime;
-                this.y += dy * this.speed * deltaTime;
-
-                // Keep player in bounds
-                this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
-                this.y = Math.max(0, Math.min(canvas.height - this.height, this.y));
-
-                // Flashlight logic
-                const flashlightActive = isTouch ? mobileFlashlight : this.flashlight.on;
-                
-                if (flashlightActive && this.flashlight.energy > 0) {
-                    this.flashlight.on = true;
-                    this.flashlight.energy -= this.flashlight.drainRate * deltaTime;
-                } else {
-                    if (!flashlightActive) this.flashlight.on = false;
-                    this.flashlight.energy += this.flashlight.rechargeRate * deltaTime;
-                }
-                
-                this.flashlight.energy = Math.max(0, Math.min(this.flashlight.maxEnergy, this.flashlight.energy));
-                
-                if (this.flashlight.energy <= 0) {
-                    this.flashlight.on = false;
-                }
-                
-                // Update UI
-                const bar = document.getElementById('flashlight-bar');
-                if (bar) {
-                    bar.style.width = `${(this.flashlight.energy / this.flashlight.maxEnergy) * 100}%`;
-                }
-            }
-
-            drawFlashlight(ctx, mouse) {
-                if (!this.flashlight.on || this.flashlight.energy <= 0) return;
-
-                const playerCenterX = this.x + this.width / 2;
-                const playerCenterY = this.y + this.height / 2;
-                const angle = Math.atan2(mouse.y - playerCenterY, mouse.x - playerCenterX);
-
-                ctx.save();
-                ctx.beginPath();
-                ctx.moveTo(playerCenterX, playerCenterY);
-                ctx.arc(playerCenterX, playerCenterY, this.flashlight.coneRadius, 
-                       angle - this.flashlight.coneAngle / 2, angle + this.flashlight.coneAngle / 2);
-                ctx.closePath();
-
-                const gradient = ctx.createRadialGradient(
-                    playerCenterX, playerCenterY, 10, 
-                    playerCenterX, playerCenterY, this.flashlight.coneRadius
-                );
-                gradient.addColorStop(0, 'rgba(255, 255, 220, 0.4)');
-                gradient.addColorStop(0.7, 'rgba(255, 255, 220, 0.15)');
-                gradient.addColorStop(1, 'rgba(255, 255, 220, 0.0)');
-                
-                ctx.fillStyle = gradient;
-                ctx.fill();
-                ctx.restore();
-            }
-
-            deployDecoy() {
-                if (this.upgrades.decoy > 0 && this.decoys.length < this.maxDecoys) {
-                    const decoy = new Decoy(this.x, this.y, 40, 40, images.decoy);
-                    this.decoys.push(decoy);
-                    setTimeout(() => {
-                        const index = this.decoys.indexOf(decoy);
-                        if (index > -1) this.decoys.splice(index, 1);
-                    }, 5000);
-                }
-            }
-
-            applyUpgrades() {
-                this.speed = this.baseSpeed * (1 + this.upgrades.speed * 0.2);
-                this.flashlight.rechargeRate = 12 * (1 + this.upgrades.flashlight_recharge * 0.3);
-                this.flashlight.maxEnergy = 100 * (1 + this.upgrades.flashlight_capacity * 0.3);
-                this.flashlight.energy = Math.min(this.flashlight.energy, this.flashlight.maxEnergy);
-            }
-        }
-
-        class Decoy extends Entity {
-            constructor(x, y, width, height, image) {
-                super(x, y, width, height, image);
-                this.isPulsing = true;
-            }
-        }
-
-        class NPC extends Entity {
-            constructor(x, y, width, height, image, type) {
-                super(x, y, width, height, image);
-                this.type = type;
-                this.speed = 80 + Math.random() * 40;
-                this.target = { x: canvas.width / 2, y: 0 };
-                this.isStunned = false;
-                this.stunTimer = 0;
-            }
-
-            update(deltaTime, player) {
-                if (this.isStunned) {
-                    this.stunTimer -= deltaTime;
-                    if (this.stunTimer <= 0) {
-                        this.isStunned = false;
-                        this.scale = 1;
-                    }
-                    return;
-                }
-                
-                let currentTarget = this.target;
-                if (player && player.decoys && player.decoys.length > 0 && this.type === 'thief' && Math.random() < 0.5) {
-                    currentTarget = player.decoys[0];
-                }
-
-                const dx = currentTarget.x - this.x;
-                const dy = currentTarget.y - this.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance > 1) {
-                    this.x += (dx / distance) * this.speed * deltaTime;
-                    this.y += (dy / distance) * this.speed * deltaTime;
-                }
-            }
-
-            stun() {
-                this.isStunned = true;
-                this.stunTimer = 2;
-                this.scale = 0.7;
-                return true;
-            }
-        }
-
-        class GuardNPC extends Entity {
-            constructor(x, y, width, height, image) {
-                super(x, y, width, height, image);
-                this.speed = 100;
-                this.visionAngle = Math.PI / 4;
-                this.visionDist = 150;
-                this.state = 'patrol';
-                this.facing = 0;
-            }
-
-            update(deltaTime, player) {
-                if (this.patrolType === 'horizontal') {
-                    this.x += this.patrolDir * this.speed * deltaTime;
-                    if (this.x <= this.patrolMinX) { 
-                        this.x = this.patrolMinX; 
-                        this.patrolDir = 1; 
-                        this.facing = 0;
-                    }
-                    if (this.x >= this.patrolMaxX) { 
-                        this.x = this.patrolMaxX; 
-                        this.patrolDir = -1; 
-                        this.facing = Math.PI;
-                    }
-                } else if (this.patrolType === 'vertical') {
-                    this.y += this.patrolDir * this.speed * deltaTime;
-                    if (this.y <= this.patrolMinY) { 
-                        this.y = this.patrolMinY; 
-                        this.patrolDir = 1; 
-                        this.facing = Math.PI/2;
-                    }
-                    if (this.y >= this.patrolMaxY) { 
-                        this.y = this.patrolMaxY; 
-                        this.patrolDir = -1; 
-                        this.facing = -Math.PI/2;
-                    }
-                }
-                
-                // Simple chase logic
-                if (player && this.canSeePlayer(player)) {
-                    const dx = (player.x + player.width/2) - (this.x + this.width/2);
-                    const dy = (player.y + player.height/2) - (this.y + this.height/2);
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist > 1) {
-                        this.x += (dx/dist) * this.speed * 1.5 * deltaTime;
-                        this.y += (dy/dist) * this.speed * 1.5 * deltaTime;
-                        this.facing = Math.atan2(dy, dx);
-                    }
-                }
-            }
-
-            canSeePlayer(player) {
-                const dx = (player.x + player.width/2) - (this.x + this.width/2);
-                const dy = (player.y + player.height/2) - (this.y + this.height/2);
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                
-                if (dist > this.visionDist) return false;
-                
-                const angleToPlayer = Math.atan2(dy, dx);
-                let diff = Math.abs(angleToPlayer - this.facing);
-                if (diff > Math.PI) diff = 2 * Math.PI - diff;
-                
-                return diff < this.visionAngle / 2;
-            }
-
-            drawVisionCone(ctx) {
-                const centerX = this.x + this.width/2;
-                const centerY = this.y + this.height/2;
-                
-                ctx.save();
-                ctx.globalAlpha = 0.2;
-                ctx.beginPath();
-                ctx.moveTo(centerX, centerY);
-                ctx.arc(
-                    centerX, centerY, this.visionDist,
-                    this.facing - this.visionAngle/2,
-                    this.facing + this.visionAngle/2
-                );
-                ctx.closePath();
-                ctx.fillStyle = '#ffff00';
-                ctx.fill();
-                ctx.restore();
-            }
-        }
-
-        console.log("Game script loaded successfully");
+            startParticleLoop();
+        };
     </script>
 </body>
 </html>
